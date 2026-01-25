@@ -1,43 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEONVERSE | BATTLE WARZONE</title>
+    <title>NEONVERSE | THE BIOME EXPANSION</title>
     <style>
-        body { background: #010103; color: #fff; font-family: 'Orbitron', sans-serif; margin: 0; overflow: hidden; }
-        #hud { position: fixed; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; }
-        #xp-bar { width: 400px; height: 12px; border: 2px solid #00f2ff; background: rgba(0,242,255,0.1); border-radius: 6px; }
-        #xp-fill { height: 100%; width: 0%; background: #00f2ff; box-shadow: 0 0 15px #00f2ff; transition: 0.3s; }
-        #kill-feed { position: fixed; top: 100px; right: 20px; text-align: right; color: #ff00ff; font-size: 14px; text-shadow: 0 0 5px #000; }
-        #ability-slots { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; }
-        .ability { width: 70px; height: 70px; border: 2px solid #555; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; }
-        .ready { border-color: #00f2ff; box-shadow: 0 0 10px #00f2ff; }
-        canvas { cursor: crosshair; }
+        body { background: #000; margin: 0; overflow: hidden; font-family: 'Orbitron', sans-serif; }
+        #overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .biome-notif { position: fixed; top: 100px; width: 100%; text-align: center; font-size: 24px; color: #fff; text-shadow: 0 0 10px #fff; pointer-events: none; opacity: 0; transition: 2s; }
+        canvas { filter: saturate(1.5) contrast(1.1); }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div id="hud">
-        <div>
-            <h1 style="margin:0; text-shadow: 0 0 20px #ff00ff; color: #ff00ff;">NEONVERSE: WARZONE</h1>
-            <div id="xp-bar"><div id="xp-fill"></div></div>
-            <p id="level-display">RANK: 1 - RECRUIT</p>
-        </div>
-        <div id="kill-feed"></div>
+    <div id="overlay">
+        <h1 style="color: #00f2ff; font-size: 60px;">NEONVERSE</h1>
+        <button onclick="start()" style="padding: 15px 50px; background: #ff00ff; color: #fff; border: none; cursor: pointer; font-family: 'Orbitron';">ENTER REALM</button>
     </div>
 
-    <div id="ability-slots">
-        <div class="ability ready" id="ab1"><span>[L-CLICK]</span><br>PLASMA</div>
-        <div class="ability" id="ab2"><span>[SPACE]</span><br>DASH</div>
-        <div class="ability" id="ab3"><span>[SHIFT]</span><br>SHIELD</div>
-    </div>
-
-    <canvas id="warzone"></canvas>
+    <div id="biome-text" class="biome-notif">ENTERING: THE VOID</div>
+    <canvas id="stage"></canvas>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, onDisconnect, push, remove, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, onDisconnect, push } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
+        // Your Config
         const firebaseConfig = {
             apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
             authDomain: "neonverse-aars.firebaseapp.com",
@@ -51,75 +38,84 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        const canvas = document.getElementById('warzone');
+        const canvas = document.getElementById('stage');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        let me = { id: 'u_'+Math.floor(Math.random()*999), x: 2500, y: 2500, hp: 100, xp: 0, lvl: 1, color: '#00f2ff' };
-        let players = {}, projectiles = {}, keys = {};
+        let me = { id: 'p_'+Math.floor(Math.random()*1000), x: 5000, y: 5000, angle: 0, scale: 1 };
+        let players = {}, particles = [];
 
-        // ⚔️ COMBAT SYSTEM
-        canvas.onmousedown = (e) => {
-            const angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
-            push(ref(db, 'warzone/projectiles'), { owner: me.id, x: me.x, y: me.y, angle: angle, speed: 15, damage: 10 });
+        // 💠 STARTING THE WORLD
+        window.start = () => {
+            document.getElementById('overlay').style.display = 'none';
+            requestAnimationFrame(loop);
         };
 
-        window.onkeydown = (e) => keys[e.code] = true;
-        window.onkeyup = (e) => keys[e.code] = false;
+        // 💠 PARTICLE ENGINE (Atmosphere)
+        for(let i=0; i<100; i++) particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*2 });
 
-        onValue(ref(db, 'warzone/projectiles'), (s) => projectiles = s.val() || {});
-        onValue(ref(db, 'players'), (s) => players = s.val() || {});
-        onDisconnect(ref(db, 'players/' + me.id)).remove();
+        function loop() {
+            // Movement with "Sway" Animation
+            let moving = false;
+            if(keys['KeyW']) { me.y -= 10; me.angle = -0.1; moving = true; }
+            if(keys['KeyS']) { me.y += 10; me.angle = 0.1; moving = true; }
+            if(keys['KeyA']) { me.x -= 10; me.scale = -1; moving = true; }
+            if(keys['KeyD']) { me.x += 10; me.scale = 1; moving = true; }
+            if(!moving) me.angle = 0;
 
-        function gameLoop() {
-            // Movement Physics
-            let speed = 8;
-            if (keys['Space']) speed = 20; // Dash ability
-            if (keys['KeyW']) me.y -= speed;
-            if (keys['KeyS']) me.y += speed;
-            if (keys['KeyA']) me.x -= speed;
-            if (keys['KeyD']) me.x += speed;
+            // Biome Check (Dynamic Theme Shift)
+            let biome = "THE NEON WASTES";
+            let theme = "#00f2ff";
+            if(me.x > 6000) { biome = "THE CRIMSON RIFT"; theme = "#ff0055"; }
+            if(me.y < 4000) { biome = "CYBER JUNGLE"; theme = "#00ff88"; }
 
             set(ref(db, 'players/' + me.id), me);
-            document.getElementById('xp-fill').style.width = (me.xp % 100) + '%';
 
-            // Rendering Warzone
-            ctx.fillStyle = '#010103'; ctx.fillRect(0,0,canvas.width, canvas.height);
-            ctx.save(); ctx.translate(canvas.width/2 - me.x, canvas.height/2 - me.y);
+            // DRAWING
+            ctx.fillStyle = "#000"; ctx.fillRect(0,0,canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.translate(canvas.width/2 - me.x, canvas.height/2 - me.y);
 
-            // Draw Dynamic Grid
-            ctx.strokeStyle = '#0a0a1a';
-            for(let i=0; i<5000; i+=200) {
-                ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,5000); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(5000,i); ctx.stroke();
-            }
-
-            // Draw Projectiles
-            Object.values(projectiles).forEach(p => {
-                ctx.fillStyle = '#ff00ff';
-                ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
+            // Draw Atmospheric Particles
+            particles.forEach(p => {
+                ctx.fillStyle = theme;
+                ctx.fillRect(me.x - canvas.width/2 + p.x, me.y - canvas.height/2 + p.y, p.s, p.s);
             });
 
-            // Draw Combatants
+            // Draw World Grid
+            ctx.strokeStyle = theme + "33"; 
+            for(let i=0; i<10000; i+=200) {
+                ctx.strokeRect(i, 0, 200, 10000);
+            }
+
+            // Draw Players with "Squash & Stretch"
+            onValue(ref(db, 'players'), (s) => players = s.val() || {});
             Object.values(players).forEach(p => {
-                ctx.shadowBlur = 20; ctx.shadowColor = p.color;
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x-20, p.y-20, 40, 40);
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle);
+                ctx.scale(p.scale, 1);
                 
-                // Name & HP Bar
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = "#fff";
-                ctx.font = "bold 12px Orbitron";
-                ctx.fillText(p.id + " [LVL "+p.lvl+"]", p.x-20, p.y-45);
-                ctx.fillStyle = "red"; ctx.fillRect(p.x-20, p.y-40, 40, 5);
-                ctx.fillStyle = "lime"; ctx.fillRect(p.x-20, p.y-40, (p.hp/100)*40, 5);
+                // Neon Character Glow
+                ctx.shadowBlur = 20; ctx.shadowColor = theme;
+                ctx.fillStyle = theme;
+                ctx.fillRect(-20, -20, 40, 40);
+                
+                // Animated Eye
+                ctx.fillStyle = "#fff"; ctx.fillRect(5, -10, 5, 5);
+                ctx.restore();
             });
 
             ctx.restore();
-            requestAnimationFrame(gameLoop);
+            requestAnimationFrame(loop);
         }
-        gameLoop();
+
+        const keys = {};
+        window.onkeydown = (e) => keys[e.code] = true;
+        window.onkeyup = (e) => keys[e.code] = false;
+        onDisconnect(ref(db, 'players/' + me.id)).remove();
     </script>
 </body>
 </html>
