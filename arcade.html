@@ -1,225 +1,186 @@
-<section id="crazy-arcade">
-  <h2>🚀 Aarush's Crazy Arcade Adventure</h2>
-  <p>Use ⬅️➡️ keys to move. Dodge enemies, collect stars, survive as long as you can!</p>
-  <p>Score: <span id="arcade-score">0</span></p>
-  <div id="arcade-area"></div>
-  <p id="arcade-gameover" style="color:red; display:none; font-size:24px;">💥 Game Over! Press R to Restart</p>
+<section id="crossy-roads">
+  <h2>🐸 Aarush's Crossy Roads</h2>
+  <p>Use ⬅️➡️⬆️⬇️ keys to move. Cross the lanes, dodge the cars, survive as long as you can!</p>
+
+  <!-- Home button -->
+  <a href="index.html" style="
+      display:inline-block;
+      padding:10px 20px;
+      background-color:black;
+      color:#00ff9c;
+      border:2px solid #00ff9c;
+      border-radius:8px;
+      text-decoration:none;
+      font-weight:bold;
+      transition:0.2s;
+      margin-bottom:10px;
+  ">🏠 Back to Home</a>
+
+  <p>Score: <span id="crossy-score">0</span> | High Score: <span id="crossy-highscore">0</span></p>
+  <div id="crossy-area"></div>
+  <p id="crossy-gameover" style="color:red; display:none; font-size:24px;">💥 Game Over! Press R to Restart</p>
 </section>
 
 <style>
-  #arcade-area {
-    position: relative;
-    width: 100%;
-    height: 400px;
-    background-color: black;
-    overflow: hidden;
-    border: 2px solid #00ff9c;
-  }
+#crossy-area {
+  position: relative;
+  width: 600px;
+  height: 400px;
+  margin: 0 auto;
+  background-color: #111;
+  border: 2px solid #00ff9c;
+  overflow: hidden;
+}
 
-  #player {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    width: 50px;
-    height: 50px;
-    background-color: #00ff9c;
-    border-radius: 10px;
-    transform: translateX(-50%);
-  }
+.player {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  font-size:32px;
+  text-align:center;
+  line-height:40px;
+}
 
-  .enemy {
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    background-color: red;
-    top: -40px;
-    border-radius: 50%;
-    font-size: 24px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+.lane {
+  position: absolute;
+  width: 100%;
+  height: 50px;
+}
 
-  .powerup {
-    position: absolute;
-    width: 30px;
-    height: 30px;
-    background-color: gold;
-    border-radius: 50%;
-    top: -30px;
-    font-size: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  /* Starfield background */
-  .star {
-    position: absolute;
-    width: 2px;
-    height: 2px;
-    background-color: white;
-    border-radius: 50%;
-  }
+.car {
+  position: absolute;
+  width: 50px;
+  height: 40px;
+  background-color:red;
+  border-radius:5px;
+}
 </style>
 
 <script>
-const arcadeArea = document.getElementById('arcade-area');
-const arcadeScore = document.getElementById('arcade-score');
-const arcadeGameOver = document.getElementById('arcade-gameover');
+const area = document.getElementById('crossy-area');
+const scoreEl = document.getElementById('crossy-score');
+const highScoreEl = document.getElementById('crossy-highscore');
+const gameOverEl = document.getElementById('crossy-gameover');
 
-let playerX = arcadeArea.clientWidth/2 - 25;
-let playerY = 20;
-const player = document.createElement('div');
-player.id = 'player';
-arcadeArea.appendChild(player);
-
+let lanes = 7;
+let laneHeight = 50;
+let player = {x: 280, y: 350, step: 50};
 let score = 0;
 let speed = 2;
-let enemies = [];
-let powerups = [];
+let cars = [];
 let gameRunning = true;
+let highScore = localStorage.getItem('crossyHighScore') || 0;
+highScoreEl.innerText = highScore;
 
-// Starfield background
-for(let i=0;i<100;i++){
-  const star = document.createElement('div');
-  star.classList.add('star');
-  star.style.left = Math.random()*arcadeArea.clientWidth + 'px';
-  star.style.top = Math.random()*arcadeArea.clientHeight + 'px';
-  arcadeArea.appendChild(star);
-}
+// Create player
+const playerEl = document.createElement('div');
+playerEl.classList.add('player');
+playerEl.innerText = '🐸';
+playerEl.style.left = player.x + 'px';
+playerEl.style.top = player.y + 'px';
+area.appendChild(playerEl);
 
-// Player movement
+// Handle player movement
 document.addEventListener('keydown', e => {
-  if(!gameRunning && e.code === 'KeyR') restartGame();
-  if(e.code === 'ArrowLeft') playerX -= 30;
-  if(e.code === 'ArrowRight') playerX += 30;
-  if(playerX < 0) playerX = 0;
-  if(playerX > arcadeArea.clientWidth - 50) playerX = arcadeArea.clientWidth - 50;
-  player.style.left = playerX + 'px';
+  if(!gameRunning && e.code === 'KeyR'){ restartGame(); return; }
+  if(e.code==='ArrowLeft') player.x -= player.step;
+  if(e.code==='ArrowRight') player.x += player.step;
+  if(e.code==='ArrowUp') player.y -= player.step;
+  if(e.code==='ArrowDown') player.y += player.step;
+
+  if(player.x<0) player.x=0;
+  if(player.x>area.clientWidth-40) player.x=area.clientWidth-40;
+  if(player.y<0){
+    score +=1;
+    scoreEl.innerText = score;
+    player.y = 350;
+  }
+  if(player.y>350) player.y=350;
+
+  playerEl.style.left = player.x + 'px';
+  playerEl.style.top = player.y + 'px';
 });
 
-// Spawn enemies
-function spawnEnemy() {
-  const enemy = document.createElement('div');
-  enemy.classList.add('enemy');
-  enemy.innerText = '💀';
-  enemy.style.left = Math.random() * (arcadeArea.clientWidth - 40) + 'px';
-  arcadeArea.appendChild(enemy);
-  enemies.push(enemy);
+// Create lanes
+for(let i=0;i<lanes;i++){
+  const laneDiv = document.createElement('div');
+  laneDiv.classList.add('lane');
+  laneDiv.style.top = i*laneHeight + 'px';
+  area.appendChild(laneDiv);
 }
 
-// Spawn powerups
-function spawnPowerup() {
-  const pu = document.createElement('div');
-  pu.classList.add('powerup');
-  pu.innerText = '⭐';
-  pu.style.left = Math.random() * (arcadeArea.clientWidth - 30) + 'px';
-  arcadeArea.appendChild(pu);
-  powerups.push(pu);
+// Spawn cars randomly
+function spawnCar(){
+  if(!gameRunning) return;
+  let laneNum = Math.floor(Math.random()*lanes);
+  let car = document.createElement('div');
+  car.classList.add('car');
+  car.style.top = laneNum*laneHeight + 'px';
+  car.style.left = (Math.random() > 0.5 ? -50 : area.clientWidth) + 'px';
+  car.dataset.direction = car.offsetLeft<0 ? 'right':'left';
+  cars.push(car);
+  area.appendChild(car);
 }
 
-// Move everything and check collisions
-function moveObjects() {
-  // Move enemies
-  enemies.forEach((enemy,index)=>{
-    let top = parseInt(enemy.style.top) || 0;
-    top += speed;
-    enemy.style.top = top + 'px';
-    
-    // Collision
-    if(top + 40 >= playerY && playerX < parseInt(enemy.style.left) + 40 && playerX + 50 > parseInt(enemy.style.left)){
-      gameOver();
+// Move cars
+function moveCars(){
+  cars.forEach((car,index)=>{
+    let left = parseInt(car.style.left);
+    if(car.dataset.direction==='right') left += speed;
+    else left -= speed;
+    car.style.left = left + 'px';
+
+    // Remove offscreen cars
+    if(left>area.clientWidth || left<-50){
+      area.removeChild(car);
+      cars.splice(index,1);
     }
 
-    if(top > arcadeArea.clientHeight){
-      arcadeArea.removeChild(enemy);
-      enemies.splice(index,1);
-      score += 1;
-      arcadeScore.innerText = score;
-      if(score % 10 === 0) speed += 0.5;
+    // Collision check
+    if(player.x < left+50 && player.x+40 > left && player.y < parseInt(car.style.top)+40 && player.y+40 > parseInt(car.style.top)){
+      endGame();
     }
-  });
-
-  // Move powerups
-  powerups.forEach((pu,index)=>{
-    let top = parseInt(pu.style.top) || 0;
-    top += speed;
-    pu.style.top = top + 'px';
-
-    // Collect powerup
-    if(top + 30 >= playerY && playerX < parseInt(pu.style.left) + 30 && playerX + 50 > parseInt(pu.style.left)){
-      score += 5;
-      arcadeScore.innerText = score;
-      arcadeArea.removeChild(pu);
-      powerups.splice(index,1);
-    }
-
-    if(top > arcadeArea.clientHeight){
-      arcadeArea.removeChild(pu);
-      powerups.splice(index,1);
-    }
-  });
-}
-
-// Move stars
-const stars = document.querySelectorAll('.star');
-function moveStars() {
-  stars.forEach(s=>{
-    let top = parseFloat(s.style.top);
-    top += 1;
-    if(top > arcadeArea.clientHeight) top = 0;
-    s.style.top = top + 'px';
   });
 }
 
 // Game loop
 function gameLoop(){
   if(!gameRunning) return;
-  moveObjects();
-  moveStars();
+  moveCars();
   requestAnimationFrame(gameLoop);
 }
 
 // Intervals
-setInterval(spawnEnemy, 1000);
-setInterval(spawnPowerup, 5000);
+setInterval(spawnCar, 1000);
 
-// Game over and restart
-function gameOver(){
-  gameRunning = false;
-  arcadeGameOver.style.display = 'block';
+// Game over
+function endGame(){
+  gameRunning=false;
+  gameOverEl.style.display='block';
+  if(score>highScore){
+    highScore=score;
+    localStorage.setItem('crossyHighScore', highScore);
+    highScoreEl.innerText = highScore;
+  }
 }
 
+// Restart game
 function restartGame(){
-  arcadeGameOver.style.display = 'none';
-  enemies.forEach(e=>arcadeArea.removeChild(e));
-  powerups.forEach(p=>arcadeArea.removeChild(p));
-  enemies = [];
-  powerups = [];
-  score = 0;
-  speed = 2;
-  arcadeScore.innerText = score;
-  playerX = arcadeArea.clientWidth/2 - 25;
-  player.style.left = playerX + 'px';
-  gameRunning = true;
+  gameOverEl.style.display='none';
+  cars.forEach(c=>area.removeChild(c));
+  cars=[];
+  player.x=280;
+  player.y=350;
+  playerEl.style.left = player.x+'px';
+  playerEl.style.top = player.y+'px';
+  score=0;
+  scoreEl.innerText=score;
+  speed=2;
+  gameRunning=true;
   gameLoop();
 }
 
-// Start the game
+// Start game
 gameLoop();
 </script>
-<br>
-<a href="index.html" style="
-    display:inline-block;
-    padding:10px 20px;
-    background-color:black;
-    color:#00ff9c;
-    border:2px solid #00ff9c;
-    border-radius:8px;
-    text-decoration:none;
-    font-weight:bold;
-    transition:0.2s;
-">🏠 Back to Home</a>
-<br><br>
 
