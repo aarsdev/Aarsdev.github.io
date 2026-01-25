@@ -79,7 +79,7 @@
   <a class="game-link" href="https://aars-account.github.io/clicker.html">🎯 Clicker</a>
   <a class="game-link" href="https://aars-account.github.io/guess.html">🧠 Guess the Number</a>
   <a class="game-link" href="https://aars-account.github.io/runner.html">🏃‍♂️ runner game</a>
-  <a class="game-link" href="https://aars-account.github.io/arcade.html"> 🕹️ runner game</a>
+  <a class="game-link" href="https://aars-account.github.io/arcade.html"> 🕹️ arcade game</a>
 </section>
 
 <section>
