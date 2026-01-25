@@ -1,0 +1,30 @@
+---
+layout: default
+title: Home
+---
+
+# 👋 Hi, I'm Aarush
+
+Welcome to my tech site!  
+I'm learning **web development, coding, and cool tech projects**.
+
+---
+
+## 🚀 What I'm Working On
+- 🌐 Building websites with HTML & CSS
+- 🧠 Learning Python
+- 🔐 Exploring cybersecurity
+- 🎮 Making small games and tools
+
+---
+
+## 🔗 My Projects
+- 🔢 Guess the Number Game (Python)
+- 🌐 This Website
+- 🛠️ More coming soon...
+
+---
+
+## 📫 Contact
+You can find me on GitHub:  
+👉 [My GitHub](https://github.com/Aars-account)
