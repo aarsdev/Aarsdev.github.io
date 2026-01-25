@@ -4,49 +4,45 @@
     <title>NEONVERSE | OMNI-WORLD</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #020205; overflow: hidden; font-family: 'Orbitron', sans-serif; color: #fff; cursor: crosshair; }
+        body { margin: 0; background: #020205; overflow: hidden; font-family: 'Orbitron', sans-serif; cursor: crosshair; }
         #hud { position: fixed; inset: 0; pointer-events: none; z-index: 100; padding: 25px; }
-        .top-bar { display: flex; justify-content: space-between; align-items: flex-start; }
-        .island-title { font-size: 30px; font-weight: 900; color: #00f2ff; text-shadow: 0 0 15px #00f2ff; }
-        .quest-box { background: rgba(0,0,0,0.8); border: 2px solid #ff00ff; padding: 15px; margin-top: 20px; width: 280px; box-shadow: 0 0 10px #ff00ff; }
-        #xp-bar { width: 300px; height: 10px; background: #111; border: 1px solid #fff; margin-top: 5px; }
-        #xp-fill { width: 0%; height: 100%; background: #00f2ff; box-shadow: 0 0 10px #00f2ff; transition: 0.3s; }
-        #inv { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; pointer-events: auto; }
-        .slot { width: 70px; height: 70px; background: #000; border: 2px solid #444; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: 0.2s; }
-        .active { border-color: #00f2ff; transform: scale(1.1); box-shadow: 0 0 20px #00f2ff; }
+        .island-banner { font-size: 32px; font-weight: 900; color: #00f2ff; text-shadow: 0 0 20px #00f2ff; text-align: center; width: 100%; }
+        .xp-container { width: 300px; height: 12px; background: rgba(255,255,255,0.1); border: 2px solid #00f2ff; border-radius: 6px; overflow: hidden; }
+        #xp-fill { width: 30%; height: 100%; background: #00f2ff; box-shadow: 0 0 15px #00f2ff; }
+        .quest-ui { position: fixed; bottom: 120px; left: 30px; background: rgba(0,0,0,0.8); border-left: 5px solid #ff00ff; padding: 15px; width: 260px; }
+        #hotbar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
+        .slot { width: 70px; height: 70px; background: #111; border: 2px solid #333; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: 0.2s; }
+        .active-slot { border-color: #ff00ff; box-shadow: 0 0 20px #ff00ff; transform: scale(1.1); }
     </style>
 </head>
 <body>
 
 <div id="hud">
-    <div class="top-bar">
+    <div style="display: flex; justify-content: space-between;">
         <div>
-            <div style="font-size: 12px; letter-spacing: 2px;">PILOT_ID: <span id="pid">---</span></div>
-            <div id="xp-bar"><div id="xp-fill"></div></div>
-            <div style="font-size: 10px;">LEVEL <span id="lvl">1</span> EXPLORER</div>
+            <div class="xp-container"><div id="xp-fill"></div></div>
+            <div style="font-size: 12px; margin-top: 5px;">RANK: ELITE EXPLORER</div>
         </div>
-        <div style="text-align: center;">
-            <div id="loc-name" class="island-title">THE VOID</div>
-            <div id="coords" style="font-size: 10px; color: #aaa;">0 , 0</div>
-        </div>
-        <div class="quest-box">
-            <b style="color: #ff00ff;">ACTIVE QUEST:</b><br>
-            <span id="quest-desc">Travel to Island #2 (X: 1800) to find the Pulse Blade.</span>
-        </div>
+        <div id="biome-text" class="island-banner">NEBULA SECTOR</div>
+        <div style="text-align: right;">CREDITS: <span id="money">1,500</span></div>
+    </div>
+    <div class="quest-ui">
+        <b style="color: #ff00ff; font-size: 10px;">OBJECTIVE</b><br>
+        <span id="quest-text">Reach the "Ancient Spire" at X: 5000</span>
     </div>
 </div>
 
-<div id="inv">
-    <div class="slot active" id="s1">👊</div>
-    <div class="slot" id="s2">🗡️</div>
-    <div class="slot" id="s3">🔫</div>
+<div id="hotbar">
+    <div class="slot active-slot">⚔️</div>
+    <div class="slot">🔫</div>
+    <div class="slot">💎</div>
 </div>
 
-<canvas id="world"></canvas>
+<canvas id="game"></canvas>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getDatabase, ref, set, onValue, onDisconnect, push } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase, ref, set, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
@@ -61,96 +57,93 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const canvas = document.getElementById('world');
+const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-let myId = "v_" + Math.floor(Math.random() * 999);
-let me = { x: 400, y: 300, vx: 0, vy: 0, hp: 100, xp: 0, lvl: 1, angle: 0, biome: "void" };
-let players = {}, particles = [];
-
-// Islands (Real World Data)
-const islands = [
-    { name: "NEON HUB", x: 0, y: 0, w: 1000, h: 800, color: "#00f2ff" },
-    { name: "CRIMSON RIFT", x: 1800, y: 1000, w: 1200, h: 900, color: "#ff0044" }
-];
+let me = { id: 'u_'+Math.floor(Math.random()*999), x: 500, y: 500, vx: 0, vy: 0, ang: 0, anim: 0, color: "#00f2ff" };
+let players = {}, stars = Array.from({length: 200}, () => ({x: Math.random()*2000, y: Math.random()*2000, z: Math.random()*3}));
 
 const keys = {};
 window.onkeydown = (e) => keys[e.code] = true;
 window.onkeyup = (e) => keys[e.code] = false;
-window.onmousemove = (e) => {
-    me.angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
-};
+window.onmousemove = (e) => me.ang = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
 
-function drawHumanoid(p) {
+function drawAvatar(p) {
+    const walk = Math.sin(p.anim) * 5;
+    const leg = Math.sin(p.anim * 0.8) * 12;
+    
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.rotate(p.angle);
     
-    // Pro Skeletal Avatar
-    ctx.shadowBlur = 20; ctx.shadowColor = p.color || "#00f2ff";
-    ctx.fillStyle = p.color || "#00f2ff";
+    // Character Shadow
+    ctx.shadowBlur = 20; ctx.shadowColor = p.color;
     
-    // Body Parts
-    ctx.fillRect(-15, -15, 30, 30); // Torso
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(15, -5, 15, 10); // Arm (Gun/Blade position)
-    ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill(); // Head
+    // Humanoid Components
+    ctx.fillStyle = "#fff"; // Head
+    ctx.beginPath(); ctx.arc(0, -45 + walk, 10, 0, Math.PI*2); ctx.fill();
+    
+    ctx.fillStyle = p.color; // Torso
+    ctx.fillRect(-12, -35 + walk, 24, 35);
+    
+    // Arms
+    ctx.fillRect(-22, -30 + walk, 8, 20);
+    ctx.fillRect(14, -30 + walk, 8, 20);
+    
+    // Animated Legs
+    ctx.fillRect(-10, 0, 8, 20 + leg);
+    ctx.fillRect(2, 0, 8, 20 - leg);
     
     ctx.restore();
 }
 
 function update() {
-    const acc = keys['ShiftLeft'] ? 1.5 : 0.8;
-    const friction = 0.92;
-    if (keys['KeyW']) me.vy -= acc; if (keys['KeyS']) me.vy += acc;
-    if (keys['KeyA']) me.vx -= acc; if (keys['KeyD']) me.vx += acc;
+    // ⚙️ Hyper-Physics (Sway & Weight)
+    const accel = 0.8;
+    const fric = 0.92;
+    let moving = false;
     
-    me.vx *= friction; me.vy *= friction;
+    if (keys['KeyW']) { me.vy -= accel; moving = true; }
+    if (keys['KeyS']) { me.vy += accel; moving = true; }
+    if (keys['KeyA']) { me.vx -= accel; moving = true; }
+    if (keys['KeyD']) { me.vx += accel; moving = true; }
+    
+    me.vx *= fric; me.vy *= fric;
     me.x += me.vx; me.y += me.vy;
+    if (moving) me.anim += 0.2;
 
-    // Island Detection
-    let onIsland = false;
-    islands.forEach(isl => {
-        if(me.x > isl.x && me.x < isl.x + isl.w && me.y > isl.y && me.y < isl.y + isl.h) {
-            document.getElementById('loc-name').innerText = isl.name;
-            document.getElementById('loc-name').style.color = isl.color;
-            onIsland = true;
-        }
+    // 🌌 DRAWING PIPELINE
+    // 1. Background Nebula
+    let g = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 10, canvas.width/2, canvas.height/2, canvas.width);
+    g.addColorStop(0, '#0a0025'); g.addColorStop(1, '#020005');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 2. Parallax Stars
+    ctx.fillStyle = "#fff";
+    stars.forEach(s => {
+        let sx = (s.x - me.x * 0.1) % 2000;
+        let sy = (s.y - me.y * 0.1) % 2000;
+        ctx.fillRect(sx < 0 ? sx + canvas.width : sx, sy < 0 ? sy + canvas.height : sy, s.z, s.z);
     });
-    if(!onIsland) document.getElementById('loc-name').innerText = "THE VOID";
 
-    // UI Updates
-    document.getElementById('pid').innerText = myId;
-    document.getElementById('coords').innerText = `${Math.floor(me.x)} , ${Math.floor(me.y)}`;
-    document.getElementById('xp-fill').style.width = (me.xp % 100) + "%";
-
-    set(ref(db, 'players/' + myId), me);
-    onValue(ref(db, 'players'), (s) => players = s.val() || {});
-
-    // Rendering
-    ctx.fillStyle = '#020205'; ctx.fillRect(0,0,canvas.width, canvas.height);
-    
+    // 3. World Entities
     ctx.save();
     ctx.translate(canvas.width/2 - me.x, canvas.height/2 - me.y);
-
-    // Draw Islands
-    islands.forEach(isl => {
-        ctx.shadowBlur = 40; ctx.shadowColor = isl.color;
-        ctx.fillStyle = isl.color + "11";
-        ctx.fillRect(isl.x, isl.y, isl.w, isl.h);
-        ctx.strokeStyle = isl.color;
-        ctx.lineWidth = 4;
-        ctx.strokeRect(isl.x, isl.y, isl.w, isl.h);
-    });
-
-    Object.values(players).forEach(p => drawHumanoid(p));
-
+    
+    // Island Drawing
+    ctx.strokeStyle = "#00f2ff44"; ctx.lineWidth = 5;
+    ctx.strokeRect(0, 0, 1000, 800); // Starter Island
+    
+    onValue(ref(db, 'players'), (s) => players = s.val() || {});
+    Object.values(players).forEach(p => drawAvatar(p));
+    
     ctx.restore();
+
+    set(ref(db, 'players/' + me.id), me);
     requestAnimationFrame(update);
 }
 
-onDisconnect(ref(db, 'players/' + myId)).remove();
+onDisconnect(ref(db, 'players/' + me.id)).remove();
 update();
 </script>
 </body>
