@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NEONVERSE | VOXEL SANDBOX</title>
+    <style>
+        body { background: #050505; color: #00f2ff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; }
+        #ui { position: fixed; top: 10; left: 10; z-index: 10; pointer-events: none; }
+        #inventory { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; background: rgba(0,0,0,0.8); padding: 10px; border: 2px solid #00f2ff; }
+        .slot { width: 40px; height: 40px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; }
+        .active { border: 2px solid #ff00ff; box-shadow: 0 0 10px #ff00ff; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <h1 style="margin:0; text-shadow: 0 0 10px #00f2ff;">NEONVERSE VOXEL</h1>
+        <p>WASD to Move | Click to Place | Right Click to Remove</p>
+        <p>CORES FOUND: <span id="cores">0</span></p>
+    </div>
+
+    <div id="inventory">
+        <div class="slot active" data-color="#00f2ff" onclick="selectSlot(this)">💠</div>
+        <div class="slot" data-color="#ff00ff" onclick="selectSlot(this)">🌸</div>
+        <div class="slot" data-color="#ffff00" onclick="selectSlot(this)">⭐</div>
+    </div>
+
+    <canvas id="world"></canvas>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, onDisconnect, remove, push } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+        // USE YOUR KEYS FROM YOUR FIREBASE SCREENSHOT
+        const firebaseConfig = {
+            apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
+            authDomain: "neonverse-aars.firebaseapp.com",
+            projectId: "neonverse-aars",
+            storageBucket: "neonverse-aars.firebasestorage.app",
+            databaseURL: "https://neonverse-aars-default-rtdb.firebaseio.com",
+            messagingSenderId: "612438599755",
+            appId: "1:612438599755:web:43f1c0a553d56c3aa045ce"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const canvas = document.getElementById('world');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let myId = "p_" + Math.floor(Math.random() * 9999);
+        let camX = 1000, camY = 1000;
+        let players = {}, blocks = {}, selectedColor = "#00f2ff";
+        let keys = {};
+
+        // 🟢 INTERACTION: Select Block Color
+        window.selectSlot = (el) => {
+            document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+            selectedColor = el.dataset.color;
+        };
+
+        // 🟢 INTERACTION: Place/Remove Blocks
+        canvas.onmousedown = (e) => {
+            const worldX = Math.floor((e.clientX + camX - canvas.width/2) / 40) * 40;
+            const worldY = Math.floor((e.clientY + camY - canvas.height/2) / 40) * 40;
+            const blockId = `${worldX}_${worldY}`;
+
+            if (e.button === 0) { // Left Click: Place
+                set(ref(db, 'world/blocks/' + blockId), { x: worldX, y: worldY, color: selectedColor });
+            } else if (e.button === 2) { // Right Click: Remove
+                remove(ref(db, 'world/blocks/' + blockId));
+            }
+        };
+        canvas.oncontextmenu = (e) => e.preventDefault();
+
+        // 🟢 SYNC: Get World Data
+        onValue(ref(db, 'world/blocks'), (snap) => { blocks = snap.val() || {}; });
+        onValue(ref(db, 'players'), (snap) => { players = snap.val() || {}; });
+        onDisconnect(ref(db, 'players/' + myId)).remove();
+
+        // 🟢 LOOP: Physics & Movement
+        window.onkeydown = (e) => keys[e.key.toLowerCase()] = true;
+        window.onkeyup = (e) => keys[e.key.toLowerCase()] = false;
+
+        function loop() {
+            if(keys['w']) camY -= 5;
+            if(keys['s']) camY += 5;
+            if(keys['a']) camX -= 5;
+            if(keys['d']) camX += 5;
+
+            set(ref(db, 'players/' + myId), { x: camX, y: camY, color: '#fff' });
+
+            // Draw World
+            ctx.fillStyle = "#050505";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(canvas.width/2 - camX, canvas.height/2 - camY);
+
+            // Draw Grid lines
+            ctx.strokeStyle = "#111";
+            for(let i=0; i<4000; i+=40) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 4000); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(4000, i); ctx.stroke();
+            }
+
+            // Draw Shared Blocks (Minecraft Style)
+            Object.values(blocks).forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.shadowBlur = 10; ctx.shadowColor = b.color;
+                ctx.fillRect(b.x + 2, b.y + 2, 36, 36);
+                ctx.shadowBlur = 0;
+            });
+
+            // Draw Other Players
+            Object.values(players).forEach(p => {
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(p.x - 10, p.y - 10, 20, 20);
+            });
+
+            ctx.restore();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>
