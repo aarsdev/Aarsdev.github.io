@@ -5,35 +5,21 @@
     <title>NEONVERSE | GLOBAL ODYSSEY</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; color: #fff; }
+        body { margin: 0; background: #050010; overflow: hidden; font-family: 'Orbitron', sans-serif; color: #fff; }
         #ui-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
-        .hud-top { display: flex; justify-content: space-between; padding: 25px; background: linear-gradient(to bottom, rgba(0,242,255,0.2), transparent); }
-        .quest-log { position: fixed; left: 20px; top: 120px; background: rgba(0,0,0,0.7); border-left: 4px solid #ff00ff; padding: 15px; width: 250px; }
-        #inventory { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; pointer-events: auto; }
-        .slot { width: 70px; height: 70px; border: 2px solid #444; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; }
-        .active-slot { border-color: #00f2ff; box-shadow: 0 0 15px #00f2ff; }
-        #avatar-label { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); color: #00f2ff; font-weight: bold; }
+        .hud-top { display: flex; justify-content: space-between; padding: 25px; background: rgba(0,0,0,0.4); border-bottom: 2px solid #00f2ff; }
+        .island-banner { font-size: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 20px #ff00ff; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
 
 <div id="ui-overlay">
     <div class="hud-top">
-        <div>LEVEL <span id="lvl">1</span> [EXP: <span id="xp">0</span>/1000]</div>
-        <div id="island-name" style="font-size: 24px; font-weight: 900; color: #ff00ff;">SECTOR: ORIGIN ISLE</div>
-        <div id="weapon-name">EQUIPPED: NONE</div>
+        <div>LVL: <span id="lvl">12</span></div>
+        <div id="island-name" class="island-banner">NEBULA STATION</div>
+        <div>HP: 100%</div>
     </div>
-    <div class="quest-log">
-        <b style="color: #ff00ff;">CURRENT QUEST</b><br>
-        <span id="quest-text">Travel to the "Crimson Island" at X: 4000 to find your first weapon.</span>
-    </div>
-    <div id="avatar-label">PLAYER_1</div>
-</div>
-
-<div id="inventory">
-    <div class="slot active-slot">👊<br>MELEE</div>
-    <div class="slot">⚔️<br>BLADE</div>
-    <div class="slot">🔫<br>RIFLE</div>
 </div>
 
 <canvas id="worldCanvas"></canvas>
@@ -59,87 +45,96 @@ const canvas = document.getElementById('worldCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-let myId = "USR_" + Math.floor(Math.random() * 9999);
-let player = { x: 500, y: 500, vx: 0, vy: 0, anim: 0, hp: 100, xp: 0, lvl: 1, color: "#00f2ff" };
-let others = {};
+let me = { id: 'u_'+Math.random().toString(36).substr(2,4), x: 5000, y: 5000, vx: 0, vy: 0, anim: 0, biome: 'nebula' };
+let players = {};
+
+// Background Starfield Data
+const stars = Array.from({length: 200}, () => ({x: Math.random()*2000, y: Math.random()*2000, s: Math.random()*2}));
 
 const keys = {};
 window.onkeydown = (e) => keys[e.code] = true;
 window.onkeyup = (e) => keys[e.code] = false;
 
-function drawHumanoid(x, y, color, animFrame, isMe) {
-    const sway = Math.sin(animFrame) * 5;
-    const legSway = Math.sin(animFrame * 0.8) * 10;
-    
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.shadowBlur = 15; ctx.shadowColor = color;
+function drawBackground() {
+    // 🌌 LAYER 1: The Deep Space Gradient
+    let grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width);
+    if (me.biome === 'nebula') {
+        grad.addColorStop(0, '#0a0020'); grad.addColorStop(1, '#020005');
+    } else {
+        grad.addColorStop(0, '#200000'); grad.addColorStop(1, '#050000');
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Head
+    // 🌌 LAYER 2: Parallax Stars
+    ctx.save();
+    ctx.translate(-(me.x * 0.1) % 2000, -(me.y * 0.1) % 2000);
     ctx.fillStyle = "#fff";
-    ctx.beginPath(); ctx.arc(0, -50 + sway/2, 10, 0, Math.PI*2); ctx.fill();
+    stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
+    ctx.restore();
+}
+
+function drawHumanoid(p) {
+    const sway = Math.sin(p.anim) * 4;
+    ctx.save();
+    ctx.translate(p.x, p.y);
     
-    // Torso
-    ctx.fillStyle = color;
-    ctx.fillRect(-12, -35 + sway, 24, 35);
+    // Character Shadow/Glow
+    ctx.shadowBlur = 25; ctx.shadowColor = (p.id === me.id) ? "#00f2ff" : "#ff00ff";
     
-    // Arms
-    ctx.fillRect(-22, -30 + sway, 8, 20); // Left
-    ctx.fillRect(14, -30 + sway, 8, 20);  // Right
-    
-    // Legs (Realistic walking animation)
-    ctx.fillRect(-10, 0, 8, 20 + legSway);
-    ctx.fillRect(2, 0, 8, 20 - legSway);
+    // Body Parts (Humanoid Pro)
+    ctx.fillStyle = "#fff"; // Head
+    ctx.beginPath(); ctx.arc(0, -45 + sway, 8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = ctx.shadowColor; // Torso
+    ctx.fillRect(-10, -35 + sway, 20, 30);
+    ctx.fillRect(-15, -30 + sway, 5, 20); // Left Arm
+    ctx.fillRect(10, -30 + sway, 5, 20);  // Right Arm
     
     ctx.restore();
 }
 
 function update() {
-    // Advanced Physics
-    const speed = keys['ShiftLeft'] ? 12 : 6;
+    const speed = 8;
     let moving = false;
-    if (keys['KeyW']) { player.y -= speed; moving = true; }
-    if (keys['KeyS']) { player.y += speed; moving = true; }
-    if (keys['KeyA']) { player.x -= speed; moving = true; }
-    if (keys['KeyD']) { player.x += speed; moving = true; }
-    
-    if (moving) player.anim += 0.2;
+    if (keys['KeyW']) { me.y -= speed; moving = true; }
+    if (keys['KeyS']) { me.y += speed; moving = true; }
+    if (keys['KeyA']) { me.x -= speed; moving = true; }
+    if (keys['KeyD']) { me.x += speed; moving = true; }
+    if (moving) me.anim += 0.15;
 
-    // Island/Sector Logic
-    if (player.x > 3000) {
-        document.getElementById('island-name').innerText = "SECTOR: CRIMSON RIFT";
-        document.getElementById('island-name').style.color = "#ff0000";
+    // Biome Logic
+    if (me.x > 6000) {
+        me.biome = 'crimson';
+        document.getElementById('island-name').innerText = "CRIMSON RIFT";
+        document.getElementById('island-name').style.color = "#ff0044";
     } else {
-        document.getElementById('island-name').innerText = "SECTOR: ORIGIN ISLE";
-        document.getElementById('island-name').style.color = "#ff00ff";
+        me.biome = 'nebula';
+        document.getElementById('island-name').innerText = "NEBULA STATION";
+        document.getElementById('island-name').style.color = "#00f2ff";
     }
 
-    set(ref(db, 'players/' + myId), player);
+    set(ref(db, 'players/' + me.id), me);
+    onValue(ref(db, 'players'), (s) => players = s.val() || {});
 
-    // Render Scene
-    ctx.fillStyle = '#020205'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+    drawBackground();
+
     ctx.save();
-    ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
+    ctx.translate(canvas.width/2 - me.x, canvas.height/2 - me.y);
 
-    // Draw Map & Islands
-    ctx.strokeStyle = '#111';
-    for(let i=-5000; i<10000; i+=500) {
-        ctx.beginPath(); ctx.moveTo(i, -5000); ctx.lineTo(i, 10000); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(-5000, i); ctx.lineTo(10000, i); ctx.stroke();
+    // Dynamic Grid Floor
+    ctx.strokeStyle = (me.biome === 'nebula' ? "#00f2ff22" : "#ff000022");
+    ctx.lineWidth = 2;
+    for(let i=0; i<10000; i+=200) {
+        ctx.strokeRect(i, 0, 200, 10000);
     }
 
-    // Render All Humanoids
-    onValue(ref(db, 'players'), (s) => others = s.val() || {});
-    Object.values(others).forEach(p => {
-        drawHumanoid(p.x, p.y, p.color, p.anim, p.id === myId);
-    });
+    Object.values(players).forEach(p => drawHumanoid(p));
 
     ctx.restore();
     requestAnimationFrame(update);
 }
 
-onDisconnect(ref(db, 'players/' + myId)).remove();
+onDisconnect(ref(db, 'players/' + me.id)).remove();
 update();
 </script>
 </body>
