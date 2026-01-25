@@ -15,6 +15,10 @@
       font-size: 16px;
       margin: 5px;
     }
+    #result {
+      font-size: 18px;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -25,33 +29,37 @@
 <input id="guess" type="number" placeholder="Enter guess">
 <br><br>
 <button onclick="checkGuess()">Guess</button>
-
 <p id="result"></p>
+<p>Guesses: <span id="guessCount">0</span></p>
+<br>
+<a href="index.html">🏠 Back to Home</a>
 
 <script>
 let secret = Math.floor(Math.random() * 100) + 1;
+let guesses = 0;
 
 function checkGuess() {
   let userGuess = parseInt(document.getElementById("guess").value);
+  guesses++;
+  document.getElementById("guessCount").innerText = guesses;
 
-  if (userGuess === secret) {
+  if(userGuess === secret){
     document.getElementById("result").innerText = "🎉 You got it! New number generated!";
-    resetNumber(); // auto-reset after correct guess
-  } else if (userGuess < secret) {
-    document.getElementById("result").innerText = "Too low!";
+    resetNumber();
+  } else if(userGuess < secret){
+    document.getElementById("result").innerText = "Too low! 🔻";
   } else {
-    document.getElementById("result").innerText = "Too high!";
+    document.getElementById("result").innerText = "Too high! 🔺";
   }
 }
 
 function resetNumber() {
-  secret = Math.floor(Math.random() * 100) + 1; // pick a new number
-  document.getElementById("guess").value = "";   // clear input
+  secret = Math.floor(Math.random() * 100) + 1;
+  guesses = 0;
+  document.getElementById("guessCount").innerText = guesses;
+  document.getElementById("guess").value = "";
 }
 </script>
 
 </body>
 </html>
-<br><br>
-<a href="index.html">🏠 Back to Home</a>
-
