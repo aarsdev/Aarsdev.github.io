@@ -1,35 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>NEON FLY | ELITE</title>
+    <title>NEON FLY | CLASSIC</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
-        :root { --neon-blue: #00f2ff; --neon-pink: #ff00ff; }
-        body { margin: 0; background: #020205; color: #fff; font-family: 'Orbitron', sans-serif; overflow: hidden; touch-action: manipulation; }
-        #ui { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); z-index: 100; }
-        .menu-card { background: #111; padding: 30px; border: 2px solid var(--neon-blue); box-shadow: 0 0 20px var(--neon-blue); text-align: center; border-radius: 10px; width: 280px; }
-        input { padding: 12px; background: #000; border: 1px solid var(--neon-pink); color: white; font-family: 'Orbitron'; margin-bottom: 15px; text-align: center; width: 80%; }
-        .btn { padding: 12px 30px; background: var(--neon-pink); border: none; color: #fff; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; width: 100%; }
-        #hud { position: fixed; top: 15px; width: 100%; display: flex; justify-content: space-around; font-size: 20px; color: var(--neon-blue); pointer-events: none; z-index: 50; }
-        canvas { display: block; margin: auto; background: #000; }
-        #leaderboard { margin-top: 20px; font-size: 12px; height: 120px; overflow: hidden; }
-        .score-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #222; }
+        body { margin: 0; background: #050505; color: #fff; font-family: 'Orbitron', sans-serif; overflow: hidden; touch-action: manipulation; }
+        canvas { display: block; margin: auto; border: 4px solid #00f2ff; box-shadow: 0 0 20px #00f2ff; }
+        #ui { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); z-index: 10; }
+        .btn { padding: 15px 30px; background: #ff00ff; border: none; color: #fff; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; }
+        #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; font-size: 24px; color: #00f2ff; pointer-events: none; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div class="menu-card">
-        <h1 style="color:var(--neon-blue); margin:0 0 15px 0;">NEON FLY</h1>
-        <input type="text" id="username" placeholder="PLAYER NAME" maxlength="10">
-        <button class="btn" onclick="startGame()">START</button>
-        <div id="leaderboard">
-            <h3 style="color:var(--neon-pink); margin: 10px 0;">TOP PILOTS</h3>
-            <div id="scores-list">Loading...</div>
-        </div>
-    </div>
+    <h1 style="color:#00f2ff">NEON FLY</h1>
+    <button class="btn" onclick="startGame()">START MISSION</button>
 </div>
 
 <div id="hud">
@@ -38,35 +24,31 @@
 </div>
 <canvas id="gameCanvas"></canvas>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getDatabase, ref, set, onValue, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
-
-const firebaseConfig = { apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI", authDomain: "neonverse-aars.firebaseapp.com", projectId: "neonverse-aars", databaseURL: "https://neonverse-aars-default-rtdb.firebaseio.com" };
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
+<script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = 400; canvas.height = 600;
 
-let active = false, score = 0, frame = 0, shake = 0;
-let pipes = [], particles = [], highscore = localStorage.getItem('neonFlyBest') || 0;
+let active = false;
+let score = 0;
+let best = localStorage.getItem('neonFlyBest') || 0;
+document.getElementById('best-score').innerText = best;
 
-document.getElementById('best-score').innerText = highscore;
+let pipes = [];
+let frame = 0;
 
 const bird = {
-    x: 60, y: 300, vel: 0, grav: 0.5, jump: -8, size: 28,
+    x: 50, y: 300, vel: 0, grav: 0.6, jump: -9, size: 25,
     update() {
-        this.vel += this.grav; this.y += this.vel;
-        if (this.y > canvas.height || this.y < 0) triggerDeath();
+        this.vel += this.grav;
+        this.y += this.vel;
+        if (this.y + this.size > canvas.height || this.y < 0) endGame();
     },
     draw() {
-        ctx.save();
-        ctx.shadowBlur = 15; ctx.shadowColor = '#ff00ff';
         ctx.fillStyle = '#ff00ff';
+        ctx.shadowBlur = 15; ctx.shadowColor = '#ff00ff';
         ctx.fillRect(this.x, this.y, this.size, this.size);
-        ctx.restore();
+        ctx.shadowBlur = 0;
     }
 };
 
@@ -74,67 +56,64 @@ class Pipe {
     constructor() {
         this.x = canvas.width;
         this.w = 60;
-        this.gap = 165;
-        this.top = Math.random() * (canvas.height - 300) + 50;
-        this.scored = false;
+        this.gap = 160;
+        this.top = Math.random() * (canvas.height / 2) + 50;
+        this.scored = false; // The Fix: Track if this specific pipe gave a point
     }
     draw() {
         ctx.fillStyle = '#00f2ff';
         ctx.fillRect(this.x, 0, this.w, this.top);
         ctx.fillRect(this.x, this.top + this.gap, this.w, canvas.height);
     }
+    update() { this.x -= 3.5; }
 }
 
-function triggerDeath() {
-    if (!active) return;
-    active = false; shake = 25;
-    const name = document.getElementById('username').value || "Guest";
-    
-    if (score > highscore) {
-        highscore = score;
-        localStorage.setItem('neonFlyBest', highscore);
-        document.getElementById('best-score').innerText = highscore;
-    }
-    
-    if (score > 0) set(ref(db, 'scores/' + name + Date.now()), { name, val: score });
-    setTimeout(() => { document.getElementById('ui').style.display = 'flex'; }, 800);
-}
-
-window.startGame = () => {
+function startGame() {
     document.getElementById('ui').style.display = 'none';
-    score = 0; pipes = []; frame = 0; bird.y = 300; bird.vel = 0;
-    document.getElementById('cur-score').innerText = "0";
-    active = true; loop();
-};
+    bird.y = 300; bird.vel = 0; pipes = []; score = 0; frame = 0;
+    document.getElementById('cur-score').innerText = 0;
+    active = true;
+    loop();
+}
 
-const flap = () => { if(active) bird.vel = bird.jump; };
-window.onkeydown = e => { if(e.code === 'Space') flap(); };
-canvas.onmousedown = flap;
+function endGame() {
+    active = false;
+    if (score > best) {
+        best = score;
+        localStorage.setItem('neonFlyBest', best);
+        document.getElementById('best-score').innerText = best;
+    }
+    document.getElementById('ui').style.display = 'flex';
+}
+
+window.onkeydown = (e) => { if(e.code === 'Space') bird.vel = bird.jump; };
+canvas.onmousedown = () => bird.vel = bird.jump;
 
 function loop() {
     if (!active) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    if (frame % 95 === 0) pipes.push(new Pipe());
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (frame % 90 === 0) pipes.push(new Pipe());
 
     for (let i = pipes.length - 1; i >= 0; i--) {
-        let p = pipes[i];
-        p.x -= 3.5;
-        p.draw();
+        pipes[i].update();
+        pipes[i].draw();
 
-        // SCORING FIX: Trigger when pipe center passes bird center
-        if (!p.scored && p.x + p.w < bird.x) {
+        // --- THE SCORING FIX ---
+        // If the left side of the pipe passes the bird's position
+        if (!pipes[i].scored && pipes[i].x < bird.x) {
             score++;
-            p.scored = true;
+            pipes[i].scored = true;
             document.getElementById('cur-score').innerText = score;
         }
 
-        // COLLISION
-        if (bird.x + bird.size > p.x && bird.x < p.x + p.w) {
-            if (bird.y < p.top || bird.y + bird.size > p.top + p.gap) triggerDeath();
+        // Collision
+        if (bird.x + bird.size > pipes[i].x && bird.x < pipes[i].x + pipes[i].w) {
+            if (bird.y < pipes[i].top || bird.y + bird.size > pipes[i].top + pipes[i].gap) endGame();
         }
 
-        if (p.x < -100) pipes.splice(i, 1);
+        if (pipes[i].x < -60) pipes.splice(i, 1);
     }
 
     bird.update();
@@ -142,15 +121,6 @@ function loop() {
     frame++;
     requestAnimationFrame(loop);
 }
-
-// Leaderboard Sync
-onValue(query(ref(db, 'scores'), orderByChild('val'), limitToLast(5)), (snap) => {
-    const list = document.getElementById('scores-list'); list.innerHTML = '';
-    let data = []; snap.forEach(c => data.push(c.val()));
-    data.reverse().forEach(e => {
-        list.innerHTML += `<div class="score-item"><span>${e.name}</span><span>${e.val}</span></div>`;
-    });
-});
 </script>
 </body>
 </html>
