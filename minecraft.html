@@ -1,93 +1,168 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEON RIVALS | PRO ENGINE</title>
+    <title>NEON RIVALS | PVP ONLINE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
-        #crosshair { position: fixed; top: 50%; left: 50%; width: 24px; height: 24px; border: 2px solid #00f2ff; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-        #crosshair::after { content: ''; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: #ff00ff; border-radius: 50%; transform: translate(-50%, -50%); }
+        #hud { position: fixed; top: 20px; left: 20px; color: #fff; z-index: 10; pointer-events: none; }
+        #crosshair { position: fixed; top: 50%; left: 50%; width: 10px; height: 10px; border: 2px solid #00f2ff; border-radius: 50%; transform: translate(-50%, -50%); }
+        #kill-feed { position: fixed; top: 20px; right: 20px; color: #ff00ff; text-align: right; }
     </style>
 </head>
 <body>
 
+<div id="hud">
+    <div style="font-size: 20px;">HEALTH: <span id="hp">100</span></div>
+    <div style="font-size: 10px; color: #00f2ff;">SPACE: JUMP | CLICK: FIRE</div>
+</div>
 <div id="crosshair"></div>
+<div id="kill-feed"></div>
 
-<script type="importmap">
-{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
-</script>
+<script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }</script>
 
 <script type="module">
 import * as THREE from 'three';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getDatabase, ref, set, onValue, onDisconnect, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-// 1. ELITE RENDERER (BLOOM & GLOW)
+// --- FIREBASE CONFIG ---
+const firebaseConfig = {
+    apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
+    authDomain: "neonverse-aars.firebaseapp.com",
+    projectId: "neonverse-aars",
+    databaseURL: "https://neonverse-aars-default-rtdb.firebaseio.com"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const myId = "u_" + Math.random().toString(36).substr(2, 5);
+
+// --- 3D SCENE ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x010103);
-scene.fog = new THREE.FogExp2(0x010103, 0.01);
-
+scene.background = new THREE.Color(0x020205);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-// 2. PRO LIGHTING
-const hemi = new THREE.HemisphereLight(0x00f2ff, 0xff00ff, 0.5);
-scene.add(hemi);
+const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambient);
 
-// 3. THE "RIVALS" AVATAR (HUMANOID IK)
-const player = new THREE.Group();
-const torso = new THREE.Mesh(new THREE.BoxGeometry(1, 1.4, 0.6), new THREE.MeshStandardMaterial({color: 0x00f2ff, emissive: 0x00f2ff, emissiveIntensity: 0.2}));
-torso.position.y = 1.7;
-player.add(torso);
+// --- PLAYER RIG ---
+function createHuman(color) {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 0.5), new THREE.MeshStandardMaterial({color}));
+    body.position.y = 0.75;
+    group.add(body);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshStandardMaterial({color: 0xffffff}));
+    head.position.y = 1.8;
+    group.add(head);
+    const gun = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 1.2), new THREE.MeshStandardMaterial({color: 0x333333}));
+    gun.position.set(0.6, 0.8, 0.5);
+    group.add(gun);
+    return group;
+}
 
-const head = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), new THREE.MeshStandardMaterial({color: 0xffffff}));
-head.position.y = 2.8;
-player.add(head);
+const myAvatar = createHuman(0x00f2ff);
+scene.add(myAvatar);
 
-// Weapon Attachment
-const gun = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 1.8), new THREE.MeshStandardMaterial({color: 0x111111}));
-gun.position.set(0.8, 1.8, 0.8);
-player.add(gun);
+// --- WORLD DATA ---
+const floor = new THREE.GridHelper(500, 50, 0x444444, 0x222222);
+scene.add(floor);
 
-scene.add(player);
+// --- PHYSICS & PVP LOGIC ---
+let velocityY = 0;
+let isGrounded = true;
+let health = 100;
+const players = {};
+const playerMeshes = {};
 
-// 4. PHYSICS ENGINE (ACCELERATION)
-let velocity = new THREE.Vector3();
+window.onmousedown = () => {
+    // 1. Raycast for Shooting
+    const shootRay = new THREE.Raycaster();
+    const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(myAvatar.quaternion);
+    shootRay.set(myAvatar.position, direction);
+
+    const targets = Object.values(playerMeshes);
+    const hits = shootRay.intersectObjects(targets, true);
+
+    if (hits.length > 0) {
+        const hitId = hits[0].object.parent.userData.id;
+        console.log("HIT PLAYER:", hitId);
+        // Send damage to database
+        update(ref(db, `players/${hitId}`), { tookDamage: Math.random() });
+    }
+};
+
+onValue(ref(db, 'players'), (snap) => {
+    const data = snap.val();
+    for (let id in data) {
+        if (id === myId) {
+            if (data[id].tookDamage !== undefined && data[id].tookDamage !== lastDamage) {
+                health -= 20;
+                document.getElementById('hp').innerText = health;
+                lastDamage = data[id].tookDamage;
+            }
+            continue;
+        }
+        if (!playerMeshes[id]) {
+            const m = createHuman(0xff00ff);
+            m.userData.id = id;
+            scene.add(m);
+            playerMeshes[id] = m;
+        }
+        playerMeshes[id].position.set(data[id].x, data[id].y, data[id].z);
+        playerMeshes[id].rotation.y = data[id].ry;
+    }
+});
+
+let lastDamage = 0;
 const keys = {};
 window.onkeydown = (e) => keys[e.code] = true;
 window.onkeyup = (e) => keys[e.code] = false;
 
-// 5. PRO CAMERA RIG (SHOULDER MOUNT)
-const camHolder = new THREE.Group();
-scene.add(camHolder);
+function animate() {
+    requestAnimationFrame(animate);
 
-function update() {
-    requestAnimationFrame(update);
+    // Movement & Rotation
+    if (keys['KeyW']) myAvatar.translateZ(0.2);
+    if (keys['KeyS']) myAvatar.translateZ(-0.2);
+    if (keys['KeyA']) myAvatar.rotation.y += 0.04;
+    if (keys['KeyD']) myAvatar.rotation.y -= 0.04;
 
-    // Smooth Movement Logic
-    const speed = 0.08;
-    const friction = 0.9;
-    
-    if (keys['KeyW']) velocity.z += speed;
-    if (keys['KeyS']) velocity.z -= speed;
-    if (keys['KeyA']) player.rotation.y += 0.05;
-    if (keys['KeyD']) player.rotation.y -= 0.05;
+    // Jumping Physics
+    if (keys['Space'] && isGrounded) {
+        velocityY = 0.25;
+        isGrounded = false;
+    }
 
-    velocity.multiplyScalar(friction);
-    player.translateZ(velocity.z);
+    if (!isGrounded) {
+        velocityY -= 0.01; // Gravity
+        myAvatar.position.y += velocityY;
+        if (myAvatar.position.y <= 0) {
+            myAvatar.position.y = 0;
+            isGrounded = true;
+        }
+    }
 
-    // Animation: Body Tilt (leaning into movement)
-    torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, velocity.z * 0.5, 0.1);
-    
-    // Pro Camera Follow (Shoulder Cam)
-    const offset = new THREE.Vector3(2, 6, -10).applyQuaternion(player.quaternion);
-    const targetCamPos = player.position.clone().add(offset);
-    camera.position.lerp(targetCamPos, 0.1);
-    camera.lookAt(player.position.clone().add(new THREE.Vector3(0, 2, 0)));
+    // Camera follow (Lerp for smoothness)
+    const camPos = new THREE.Vector3(0, 5, -10).applyQuaternion(myAvatar.quaternion).add(myAvatar.position);
+    camera.position.lerp(camPos, 0.1);
+    camera.lookAt(myAvatar.position.clone().add(new THREE.Vector3(0, 1.5, 0)));
+
+    // Update Firebase
+    set(ref(db, 'players/' + myId), {
+        x: myAvatar.position.x,
+        y: myAvatar.position.y,
+        z: myAvatar.position.z,
+        ry: myAvatar.rotation.y,
+        health: health
+    });
 
     renderer.render(scene, camera);
 }
-update();
+onDisconnect(ref(db, 'players/' + myId)).remove();
+animate();
 </script>
 </body>
 </html>
