@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Guess The Number</title>
+  <style>
+    body {
+      background-color: #0d1117;
+      color: #00ff9c;
+      font-family: Arial;
+      text-align: center;
+      margin-top: 80px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🧠 Guess The Number</h1>
+<p>I’m thinking of a number from 1 to 100</p>
+
+<input id="guess" type="number" placeholder="Enter guess">
+<br><br>
+<button onclick="checkGuess()">Guess</button>
+
+<p id="result"></p>
+
+<script>
+let secret = Math.floor(Math.random() * 100) + 1;
+
+function checkGuess() {
+  let userGuess = document.getElementById("guess").value;
+
+  if (userGuess == secret) {
+    document.getElementById("result").innerText = "🎉 You got it!";
+  } else if (userGuess < secret) {
+    document.getElementById("result").innerText = "Too low!";
+  } else {
+    document.getElementById("result").innerText = "Too high!";
+  }
+}
+</script>
+
+</body>
+</html>
