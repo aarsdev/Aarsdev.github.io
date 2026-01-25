@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🏃‍♂️ Endless Runner Game</title>
+  <style>
+    body {
+      background-color: #0d1117;
+      color: #00ff9c;
+      font-family: 'Courier New', monospace;
+      margin: 0;
+      text-align: center;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      margin: 20px;
+      font-size: 36px;
+    }
+
+    #gameArea {
+      position: relative;
+      width: 100%;
+      height: 400px;
+      background-color: #111;
+      border: 2px solid #00ff9c;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+
+    #player {
+      position: absolute;
+      bottom: 0;
+      left: 50px;
+      width: 50px;
+      height: 50px;
+      background-color: #00ff9c;
+      border-radius: 5px;
+    }
+
+    .obstacle {
+      position: absolute;
+      bottom: 0;
+      width: 30px;
+      height: 50px;
+      background-color: red;
+      right: 0;
+    }
+
+    #score {
+      font-size: 24px;
+      margin-top: 15px;
+    }
+
+    #gameOver {
+      font-size: 32px;
+      color: red;
+      display: none;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🏃‍♂️ Endless Runner</h1>
+<div id="gameArea">
+  <div id="player"></div>
+</div>
+<p id="score">Score: 0</p>
+<p id="gameOver">💥 Game Over! Press R to Restart</p>
+
+<script>
+const gameArea = document.getElementById('gameArea');
+const player = document.getElementById('player');
+const scoreDisplay = document.getElementById('score');
+const gameOverText = document.getElementById('gameOver');
+
+let playerY = 0;
+let isJumping = false;
+let obstacles = [];
+let score = 0;
+let speed = 5;
+let gameInterval;
+let obstacleInterval;
+let jumpHeight = 120;
+
+// Player jump
+document.addEventListener('keydown', e => {
+  if(e.code === 'Space' && !isJumping) {
+    jump();
+  }
+  if(e.code === 'KeyR' && gameOverText.style.display === 'block') {
+    restartGame();
+  }
+});
+
+function jump() {
+  isJumping = true;
+  let upInterval = setInterval(() => {
+    if(playerY >= jumpHeight){
+      clearInterval(upInterval);
+      let downInterval = setInterval(() => {
+        if(playerY <= 0){
+          clearInterval(downInterval);
+          isJumping = false;
+        }
+        playerY -= 10;
+        player.style.bottom = playerY + 'px';
+      }, 20);
+    }
+    playerY += 10;
+    player.style.bottom = playerY + 'px';
+  }, 20);
+}
+
+// Spawn obstacles
+function spawnObstacle() {
+  const obs = document.createElement('div');
+  obs.classList.add('obstacle');
+  obs.style.right = '0px';
+  gameArea.appendChild(obs);
+  obstacles.push(obs);
+}
+
+// Move obstacles
+function moveObstacles() {
+  obstacles.forEach((obs, index) => {
+    let right = parseInt(obs.style.right);
+    obs.style.right = right + speed + 'px';
+
+    // Collision
+    let playerLeft = player.offsetLeft;
+    let playerBottom = playerY;
+    let obsLeft = gameArea.offsetWidth - (right + obs.offsetWidth);
+
+    if(obsLeft < playerLeft + player.offsetWidth &&
+       obsLeft + obs.offsetWidth > playerLeft &&
+       playerBottom < obs.offsetHeight) {
+      endGame();
+    }
+
+    // Remove obstacles off-screen
+    if(right > gameArea.offsetWidth) {
+      gameArea.removeChild(obs);
+      obstacles.splice(index,1);
+      score += 1;
+      scoreDisplay.innerText = "Score: " + score;
+      if(score % 10 === 0) speed += 1; // Increase speed every 10 points
+    }
+  });
+}
+
+// Game loop
+function gameLoop() {
+  moveObstacles();
+}
+
+function startGame() {
+  gameInterval = setInterval(gameLoop, 20);
+  obstacleInterval = setInterval(spawnObstacle, 1500);
+}
+
+function endGame() {
+  clearInterval(gameInterval);
+  clearInterval(obstacleInterval);
+  gameOverText.style.display = 'block';
+}
+
+function restartGame() {
+  gameOverText.style.display = 'none';
+  obstacles.forEach(obs => gameArea.removeChild(obs));
+  obstacles = [];
+  playerY = 0;
+  player.style.bottom = '0px';
+  score = 0;
+  speed = 5;
+  scoreDisplay.innerText = "Score: " + score;
+  startGame();
+}
+
+// Start automatically
+startGame();
+</script>
+
+</body>
+</html>
