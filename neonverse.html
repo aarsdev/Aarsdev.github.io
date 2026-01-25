@@ -1,21 +1,103 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NEONVERSE | Multiplayer</title>
+    <style>
+        body { background-color: #050505; color: #00f2ff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+        h1 { text-shadow: 0 0 10px #00f2ff, 0 0 20px #00f2ff; margin-top: 20px; letter-spacing: 5px; }
+        #game-canvas { background: radial-gradient(circle, #111 0%, #000 100%); border: 4px solid #00f2ff; box-shadow: 0 0 20px #00f2ff; border-radius: 10px; }
+        #chat-box { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #00f2ff; border-radius: 5px; }
+        #messages { height: 80px; overflow-y: auto; margin-bottom: 5px; width: 250px; font-size: 12px; }
+        #chat-input { background: #000; color: #00f2ff; border: 1px solid #00f2ff; width: 240px; padding: 5px; }
+    </style>
+</head>
+<body>
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
-  authDomain: "neonverse-aars.firebaseapp.com",
-  projectId: "neonverse-aars",
-  storageBucket: "neonverse-aars.firebasestorage.app",
-  messagingSenderId: "612438599755",
-  appId: "1:612438599755:web:43f1c0a553d56c3aa045ce",
-  measurementId: "G-MXGZH2V3SV"
-};
+    <h1>NEONVERSE</h1>
+    <p>PLAYERS ONLINE: <span id="count">0</span></p>
+    
+    <canvas id="game-canvas" width="800" height="500"></canvas>
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+    <div id="chat-box">
+        <div id="messages"></div>
+        <input type="text" id="chat-input" placeholder="Type message & hit Enter...">
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, onDisconnect, push } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
+        // Your Config from your screenshot
+        const firebaseConfig = {
+            apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
+            authDomain: "neonverse-aars.firebaseapp.com",
+            projectId: "neonverse-aars",
+            storageBucket: "neonverse-aars.firebasestorage.app",
+            messagingSenderId: "612438599755",
+            appId: "1:612438599755:web:43f1c0a553d56c3aa045ce",
+            measurementId: "G-MXGZH2V3SV"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const playerId = "user_" + Math.floor(Math.random() * 9999);
+        const playerRef = ref(db, `neonverse/players/${playerId}`);
+        
+        let x = Math.random() * 700 + 50;
+        let y = Math.random() * 400 + 50;
+        const color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+
+        set(playerRef, { x, y, color, id: playerId });
+        onDisconnect(playerRef).remove();
+
+        // Movement
+        document.addEventListener("keydown", (e) => {
+            const key = e.key.toLowerCase();
+            if (key === "d" || key === "arrowright") x += 10;
+            if (key === "a" || key === "arrowleft") x -= 10;
+            if (key === "w" || key === "arrowup") y -= 10;
+            if (key === "s" || key === "arrowdown") y += 10;
+            set(playerRef, { x, y, color, id: playerId });
+        });
+
+        // Chat Logic
+        const chatInput = document.getElementById('chat-input');
+        const messagesDiv = document.getElementById('messages');
+
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && chatInput.value !== "") {
+                const chatRef = ref(db, 'neonverse/chat');
+                push(chatRef, { user: playerId, text: chatInput.value });
+                chatInput.value = "";
+            }
+        });
+
+        onValue(ref(db, 'neonverse/chat'), (snapshot) => {
+            messagesDiv.innerHTML = "";
+            const msgs = snapshot.val() || {};
+            Object.values(msgs).slice(-6).forEach(m => {
+                messagesDiv.innerHTML += `<div><b style="color:${color}">${m.user.split('_')[1]}:</b> ${m.text}</div>`;
+            });
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        // Drawing
+        const canvas = document.getElementById("game-canvas");
+        const ctx = canvas.getContext("2d");
+
+        onValue(ref(db, 'neonverse/players'), (snapshot) => {
+            const players = snapshot.val() || {};
+            document.getElementById('count').innerText = Object.keys(players).length;
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+
+            Object.values(players).forEach(p => {
+                ctx.shadowBlur = 15; ctx.shadowColor = p.color;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, 20, 20);
+                ctx.shadowBlur = 0;
+            });
+        });
+    </script>
+</body>
+</html>
