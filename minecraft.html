@@ -1,23 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEONVERSE | RIVALS GRADE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
+    <title>NEON RIVALS | PRO ENGINE</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; }
-        #ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; padding: 25px; color: #fff; }
-        .reticle { position: fixed; top: 50%; left: 50%; width: 20px; height: 20px; border: 1px solid #00f2ff; border-radius: 50%; transform: translate(-50%, -50%); }
-        /* Add a subtle scanline effect to make it look like a high-end monitor */
-        body::after { content: " "; position: fixed; inset: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; pointer-events: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
+        #crosshair { position: fixed; top: 50%; left: 50%; width: 24px; height: 24px; border: 2px solid #00f2ff; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        #crosshair::after { content: ''; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: #ff00ff; border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <div style="font-size: 24px; color: #00f2ff; text-shadow: 0 0 10px #00f2ff;">NEON RIVALS</div>
-    <div id="status" style="font-size: 12px; letter-spacing: 3px;">SYSTEM: CALIBRATED</div>
-</div>
-<div class="reticle"></div>
+<div id="crosshair"></div>
 
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -26,86 +19,71 @@
 <script type="module">
 import * as THREE from 'three';
 
-// --- ENGINE CORE ---
+// 1. ELITE RENDERER (BLOOM & GLOW)
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x020205);
-scene.fog = new THREE.FogExp2(0x020205, 0.015); // Adds atmospheric depth
+scene.background = new THREE.Color(0x010103);
+scene.fog = new THREE.FogExp2(0x010103, 0.01);
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
-const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.toneMapping = THREE.ReinhardToneMapping; // Pro-grade lighting
+renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-// --- LIGHTING (The "Rivals" Glow) ---
-const ambient = new THREE.AmbientLight(0x404040, 0.5);
-scene.add(ambient);
+// 2. PRO LIGHTING
+const hemi = new THREE.HemisphereLight(0x00f2ff, 0xff00ff, 0.5);
+scene.add(hemi);
 
-const sun = new THREE.PointLight(0x00f2ff, 500, 100);
-scene.add(sun);
+// 3. THE "RIVALS" AVATAR (HUMANOID IK)
+const player = new THREE.Group();
+const torso = new THREE.Mesh(new THREE.BoxGeometry(1, 1.4, 0.6), new THREE.MeshStandardMaterial({color: 0x00f2ff, emissive: 0x00f2ff, emissiveIntensity: 0.2}));
+torso.position.y = 1.7;
+player.add(torso);
 
-// --- THE ARENA (High-Fidelity) ---
-const grid = new THREE.GridHelper(1000, 80, 0x00f2ff, 0x050505);
-scene.add(grid);
+const head = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), new THREE.MeshStandardMaterial({color: 0xffffff}));
+head.position.y = 2.8;
+player.add(head);
 
-// Floating "Neon Islands"
-function addPlatform(x, y, z) {
-    const geo = new THREE.BoxGeometry(40, 2, 40);
-    const mat = new THREE.MeshPhongMaterial({ 
-        color: 0x111111, 
-        emissive: 0x00f2ff, 
-        emissiveIntensity: 0.2,
-        shininess: 100 
-    });
-    const p = new THREE.Mesh(geo, mat);
-    p.position.set(x, y, z);
-    scene.add(p);
-}
-addPlatform(0, -1, 0);
-addPlatform(100, 10, 100);
+// Weapon Attachment
+const gun = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 1.8), new THREE.MeshStandardMaterial({color: 0x111111}));
+gun.position.set(0.8, 1.8, 0.8);
+player.add(gun);
 
-// --- HUMAN PLAYER ---
-const playerGroup = new THREE.Group();
-const humanBody = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.5, 1.5, 4, 12),
-    new THREE.MeshStandardMaterial({ color: 0x00f2ff, emissive: 0x00f2ff, emissiveIntensity: 0.5 })
-);
-humanBody.position.y = 1.25;
-playerGroup.add(humanBody);
-scene.add(playerGroup);
+scene.add(player);
 
-// --- MOVEMENT & INTERPOLATION ---
-const keys = {};
+// 4. PHYSICS ENGINE (ACCELERATION)
 let velocity = new THREE.Vector3();
+const keys = {};
 window.onkeydown = (e) => keys[e.code] = true;
 window.onkeyup = (e) => keys[e.code] = false;
+
+// 5. PRO CAMERA RIG (SHOULDER MOUNT)
+const camHolder = new THREE.Group();
+scene.add(camHolder);
 
 function update() {
     requestAnimationFrame(update);
 
-    // Smooth Acceleration (The 999999x Secret)
-    const accel = 0.05;
-    const friction = 0.85;
-
-    if (keys['KeyW']) velocity.z += accel;
-    if (keys['KeyS']) velocity.z -= accel;
-    if (keys['KeyA']) playerGroup.rotation.y += 0.04;
-    if (keys['KeyD']) playerGroup.rotation.y -= 0.04;
+    // Smooth Movement Logic
+    const speed = 0.08;
+    const friction = 0.9;
+    
+    if (keys['KeyW']) velocity.z += speed;
+    if (keys['KeyS']) velocity.z -= speed;
+    if (keys['KeyA']) player.rotation.y += 0.05;
+    if (keys['KeyD']) player.rotation.y -= 0.05;
 
     velocity.multiplyScalar(friction);
-    playerGroup.translateZ(velocity.z);
+    player.translateZ(velocity.z);
 
-    // "Head-Bob" Animation
-    if(Math.abs(velocity.z) > 0.01) {
-        humanBody.position.y = 1.25 + Math.sin(Date.now() * 0.01) * 0.1;
-    }
-
+    // Animation: Body Tilt (leaning into movement)
+    torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, velocity.z * 0.5, 0.1);
+    
     // Pro Camera Follow (Shoulder Cam)
-    const idealOffset = new THREE.Vector3(0, 6, -12).applyQuaternion(playerGroup.quaternion).add(playerGroup.position);
-    camera.position.lerp(idealOffset, 0.1);
-    camera.lookAt(playerGroup.position.clone().add(new THREE.Vector3(0, 2, 0)));
-
-    sun.position.copy(playerGroup.position).add(new THREE.Vector3(0, 5, 0));
+    const offset = new THREE.Vector3(2, 6, -10).applyQuaternion(player.quaternion);
+    const targetCamPos = player.position.clone().add(offset);
+    camera.position.lerp(targetCamPos, 0.1);
+    camera.lookAt(player.position.clone().add(new THREE.Vector3(0, 2, 0)));
 
     renderer.render(scene, camera);
 }
