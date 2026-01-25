@@ -1,25 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEONVERSE | INFINITE ADVENTURE</title>
+    <title>NEONVERSE | BUILD & BATTLE</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
-        #ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; color: #fff; }
-        .hud { position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 15px; border-left: 4px solid #ff00ff; }
-        #nametag-container { position: absolute; top: 0; left: 0; pointer-events: none; }
-        .name-label { position: absolute; color: white; transform: translate(-50%, -100%); text-shadow: 2px 2px 0 #000; font-size: 14px; white-space: nowrap; }
+        #ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; color: #fff; padding: 20px; }
+        .build-mode { color: #00f2ff; font-size: 20px; text-shadow: 0 0 10px #00f2ff; visibility: hidden; }
+        #crosshair { position: fixed; top: 50%; left: 50%; width: 6px; height: 6px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div class="hud">
-        <div id="p-name">PLAYER: ---</div>
-        <div style="font-size: 10px; color: #00f2ff;">WORLD: MASSIVE ARENA V1</div>
-    </div>
+    <div id="mode-indicator" class="build-mode">BUILD MODE: WALL [Q]</div>
+    <div style="margin-top: 10px;">LEFT CLICK: PLACE | WASD: MOVE</div>
 </div>
-<div id="nametag-container"></div>
+<div id="crosshair"></div>
 
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -28,144 +25,112 @@
 <script type="module">
 import * as THREE from 'three';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getDatabase, ref, set, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase, ref, set, onValue, onChildAdded } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-// --- INITIAL PROMPT ---
-const username = prompt("ENTER YOUR WARRIOR NAME:", "Player" + Math.floor(Math.random()*999)) || "Guest";
-document.getElementById('p-name').innerText = "PLAYER: " + username;
-
-// --- FIREBASE ---
+// --- FIREBASE SETUP ---
 const firebaseConfig = {
     apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
     authDomain: "neonverse-aars.firebaseapp.com",
     projectId: "neonverse-aars",
-    storageBucket: "neonverse-aars.firebasestorage.app",
-    databaseURL: "https://neonverse-aars-default-rtdb.firebaseio.com",
-    messagingSenderId: "612438599755",
-    appId: "1:612438599755:web:43f1c0a553d56c3aa045ce"
+    databaseURL: "https://neonverse-aars-default-rtdb.firebaseio.com"
 };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const myId = "p_" + Math.random().toString(36).substr(2, 9);
 
-// --- 3D SCENE ---
+// --- SCENE & CAMERA ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x020208);
-scene.fog = new THREE.Fog(0x020208, 10, 1000);
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
+scene.background = new THREE.Color(0x020205);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // --- LIGHTING ---
-const ambient = new THREE.AmbientLight(0x404040, 2);
-scene.add(ambient);
-const sun = new THREE.DirectionalLight(0xff00ff, 1);
-sun.position.set(100, 100, 50);
-scene.add(sun);
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+const spot = new THREE.PointLight(0x00f2ff, 100);
+scene.add(spot);
 
-// --- HUGE ARENA ---
-const floorGeo = new THREE.PlaneGeometry(2000, 2000);
-const floorMat = new THREE.MeshPhongMaterial({ color: 0x111111, side: THREE.DoubleSide });
-const floor = new THREE.Mesh(floorGeo, floorMat);
-floor.rotation.x = Math.PI / 2;
-scene.add(floor);
-
-const grid = new THREE.GridHelper(2000, 50, 0x00f2ff, 0x222222);
+// --- FLOOR ---
+const grid = new THREE.GridHelper(1000, 100, 0x444444, 0x222222);
 scene.add(grid);
 
-// --- HUMAN AVATAR GEN ---
-function createHumanoid(color) {
-    const group = new THREE.Group();
-    // Torso
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 0.5), new THREE.MeshStandardMaterial({color}));
-    body.position.y = 1.75;
-    group.add(body);
-    // Head
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.4), new THREE.MeshStandardMaterial({color: 0xffffff}));
-    head.position.y = 2.8;
-    group.add(head);
-    // Arms
-    const armGeo = new THREE.BoxGeometry(0.4, 1.5, 0.4);
-    const lArm = new THREE.Mesh(armGeo, new THREE.MeshStandardMaterial({color}));
-    lArm.position.set(-0.8, 1.75, 0);
-    group.add(lArm);
-    const rArm = new THREE.Mesh(armGeo, new THREE.MeshStandardMaterial({color}));
-    rArm.position.set(0.8, 1.75, 0);
-    group.add(rArm);
-    return group;
-}
+// --- PLAYER ---
+const player = new THREE.Group();
+const body = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x00f2ff}));
+player.add(body);
+scene.add(player);
 
-const myAvatar = createHumanoid(0x00f2ff);
-scene.add(myAvatar);
+// --- BUILDING SYSTEM ---
+let buildMode = false;
+const wallGeo = new THREE.BoxGeometry(5, 5, 0.5);
+const ghostMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.4 });
+const ghostWall = new THREE.Mesh(wallGeo, ghostMat);
+scene.add(ghostWall);
+ghostWall.visible = false;
 
-// --- MULTIPLAYER ---
-let otherPlayers = {};
-let labels = {};
+// Snap function
+const snap = (val) => Math.round(val / 5) * 5;
 
-onValue(ref(db, 'players'), (snap) => {
-    const data = snap.val();
-    for(let id in data) {
-        if(id === myId) continue;
-        if(!otherPlayers[id]) {
-            otherPlayers[id] = createHumanoid(0xff00ff);
-            scene.add(otherPlayers[id]);
-            const lbl = document.createElement('div');
-            lbl.className = 'name-label';
-            document.getElementById('nametag-container').appendChild(lbl);
-            labels[id] = { el: lbl, name: data[id].name };
-        }
-        otherPlayers[id].position.set(data[id].x, data[id].y, data[id].z);
-        otherPlayers[id].rotation.y = data[id].ry;
-    }
-});
-
-onDisconnect(ref(db, 'players/' + myId)).remove();
-
-// --- CONTROLS ---
+// --- INPUTS ---
 const keys = {};
-window.onkeydown = (e) => keys[e.code] = true;
+window.onkeydown = (e) => {
+    keys[e.code] = true;
+    if(e.code === 'KeyQ') {
+        buildMode = !buildMode;
+        ghostWall.visible = buildMode;
+        document.getElementById('mode-indicator').style.visibility = buildMode ? 'visible' : 'hidden';
+    }
+};
 window.onkeyup = (e) => keys[e.code] = false;
 
-function updateNametags() {
-    for(let id in labels) {
-        const p = otherPlayers[id];
-        const vector = p.position.clone();
-        vector.y += 4;
-        vector.project(camera);
-        const x = (vector.x * .5 + .5) * window.innerWidth;
-        const y = (vector.y * -.5 + .5) * window.innerHeight;
-        labels[id].el.style.left = `${x}px`;
-        labels[id].el.style.top = `${y}px`;
-        labels[id].el.innerText = labels[id].name;
+window.onmousedown = () => {
+    if(buildMode) {
+        const buildRef = ref(db, 'builds/' + Date.now());
+        set(buildRef, {
+            x: ghostWall.position.x,
+            y: ghostWall.position.y,
+            z: ghostWall.position.z,
+            ry: ghostWall.rotation.y
+        });
     }
-}
+};
 
+// --- SYNC BUILDS ---
+onChildAdded(ref(db, 'builds'), (data) => {
+    const b = data.val();
+    const wall = new THREE.Mesh(wallGeo, new THREE.MeshStandardMaterial({color: 0x555555}));
+    wall.position.set(b.x, b.y, b.z);
+    wall.rotation.y = b.ry;
+    scene.add(wall);
+});
+
+// --- GAME LOOP ---
 function animate() {
     requestAnimationFrame(animate);
-    
-    let moveSpeed = 0.4;
-    if(keys['KeyW']) myAvatar.translateZ(moveSpeed);
-    if(keys['KeyS']) myAvatar.translateZ(-moveSpeed);
-    if(keys['KeyA']) myAvatar.rotation.y += 0.05;
-    if(keys['KeyD']) myAvatar.rotation.y -= 0.05;
 
-    // Camera Rig (Third Person)
-    const relativeCameraOffset = new THREE.Vector3(0, 7, -15);
-    const cameraOffset = relativeCameraOffset.applyMatrix4(myAvatar.matrixWorld);
-    camera.position.lerp(cameraOffset, 0.1);
-    camera.lookAt(myAvatar.position);
+    // Movement
+    if (keys['KeyW']) player.translateZ(0.2);
+    if (keys['KeyS']) player.translateZ(-0.2);
+    if (keys['KeyA']) player.rotation.y += 0.05;
+    if (keys['KeyD']) player.rotation.y -= 0.05;
 
-    set(ref(db, 'players/' + myId), {
-        x: myAvatar.position.x,
-        y: myAvatar.position.y,
-        z: myAvatar.position.z,
-        ry: myAvatar.rotation.y,
-        name: username
-    });
+    // Build Ghost Placement
+    if(buildMode) {
+        const forward = new THREE.Vector3(0, 0, 10).applyQuaternion(player.quaternion);
+        ghostWall.position.set(
+            snap(player.position.x + forward.x),
+            2.5,
+            snap(player.position.z + forward.z)
+        );
+        ghostWall.rotation.y = player.rotation.y;
+    }
 
-    updateNametags();
+    // Camera follow
+    const camPos = new THREE.Vector3(0, 8, -15).applyQuaternion(player.quaternion).add(player.position);
+    camera.position.lerp(camPos, 0.1);
+    camera.lookAt(player.position);
+    spot.position.copy(player.position);
+
     renderer.render(scene, camera);
 }
 animate();
