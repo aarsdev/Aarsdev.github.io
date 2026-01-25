@@ -1,121 +1,123 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEONVERSE | THE BIOME EXPANSION</title>
-    <style>
-        body { background: #000; margin: 0; overflow: hidden; font-family: 'Orbitron', sans-serif; }
-        #overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        .biome-notif { position: fixed; top: 100px; width: 100%; text-align: center; font-size: 24px; color: #fff; text-shadow: 0 0 10px #fff; pointer-events: none; opacity: 0; transition: 2s; }
-        canvas { filter: saturate(1.5) contrast(1.1); }
-    </style>
+    <title>NEONVERSE | HYPER BATTLE</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; }
+        #ui-layer { position: fixed; inset: 0; pointer-events: none; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+        #rank-card { background: rgba(255,0,255,0.1); border-left: 5px solid #ff00ff; padding: 15px; width: 200px; }
+        #kill-feed { color: #00f2ff; text-align: right; font-size: 14px; }
+        #crosshair { position: fixed; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 1000; }
+    </style>
 </head>
 <body>
 
-    <div id="overlay">
-        <h1 style="color: #00f2ff; font-size: 60px;">NEONVERSE</h1>
-        <button onclick="start()" style="padding: 15px 50px; background: #ff00ff; color: #fff; border: none; cursor: pointer; font-family: 'Orbitron';">ENTER REALM</button>
+<div id="crosshair"></div>
+<div id="ui-layer">
+    <div id="rank-card">
+        <div style="font-size: 10px;">GLOBAL RANK</div>
+        <div id="player-rank" style="font-size: 24px; color: #ff00ff;">ELITE #1</div>
     </div>
+    <div id="kill-feed">SYSTEM: ARENA LIVE</div>
+</div>
 
-    <div id="biome-text" class="biome-notif">ENTERING: THE VOID</div>
-    <canvas id="stage"></canvas>
+<canvas id="battleCanvas"></canvas>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, onDisconnect, push } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getDatabase, ref, set, onValue, onDisconnect, push, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-        // Your Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
-            authDomain: "neonverse-aars.firebaseapp.com",
-            projectId: "neonverse-aars",
-            storageBucket: "neonverse-aars.firebasestorage.app",
-            databaseURL: "https://neonverse-aars-default-rtdb.firebaseio.com",
-            messagingSenderId: "612438599755",
-            appId: "1:612438599755:web:43f1c0a553d56c3aa045ce"
-        };
+// Your Verified Config
+const firebaseConfig = {
+    apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
+    authDomain: "neonverse-aars.firebaseapp.com",
+    projectId: "neonverse-aars",
+    storageBucket: "neonverse-aars.firebasestorage.app",
+    databaseURL: "https://neonverse-aars-default-rtdb.firebaseio.com",
+    messagingSenderId: "612438599755",
+    appId: "1:612438599755:web:43f1c0a553d56c3aa045ce"
+};
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-        const canvas = document.getElementById('stage');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+const canvas = document.getElementById('battleCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-        let me = { id: 'p_'+Math.floor(Math.random()*1000), x: 5000, y: 5000, angle: 0, scale: 1 };
-        let players = {}, particles = [];
+// Player & Game State
+let myId = "v_" + Math.floor(Math.random() * 999);
+let player = { x: 500, y: 500, vx: 0, vy: 0, size: 30, color: "#ff00ff", state: "idle" };
+let ball = { x: 0, y: 0, target: "", speed: 5 };
+let participants = {};
 
-        // 💠 STARTING THE WORLD
-        window.start = () => {
-            document.getElementById('overlay').style.display = 'none';
-            requestAnimationFrame(loop);
-        };
+// 💠 Mouse Interaction (Parry Mechanic like Blade Ball)
+window.onmousemove = (e) => {
+    document.getElementById('crosshair').style.left = e.clientX + 'px';
+    document.getElementById('crosshair').style.top = e.clientY + 'px';
+};
 
-        // 💠 PARTICLE ENGINE (Atmosphere)
-        for(let i=0; i<100; i++) particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*2 });
+window.onmousedown = () => {
+    player.state = "parry"; // Activate block
+    setTimeout(() => player.state = "idle", 150);
+};
 
-        function loop() {
-            // Movement with "Sway" Animation
-            let moving = false;
-            if(keys['KeyW']) { me.y -= 10; me.angle = -0.1; moving = true; }
-            if(keys['KeyS']) { me.y += 10; me.angle = 0.1; moving = true; }
-            if(keys['KeyA']) { me.x -= 10; me.scale = -1; moving = true; }
-            if(keys['KeyD']) { me.x += 10; me.scale = 1; moving = true; }
-            if(!moving) me.angle = 0;
+const keys = {};
+window.onkeydown = (e) => keys[e.code] = true;
+window.onkeyup = (e) => keys[e.code] = false;
 
-            // Biome Check (Dynamic Theme Shift)
-            let biome = "THE NEON WASTES";
-            let theme = "#00f2ff";
-            if(me.x > 6000) { biome = "THE CRIMSON RIFT"; theme = "#ff0055"; }
-            if(me.y < 4000) { biome = "CYBER JUNGLE"; theme = "#00ff88"; }
+// 💠 The Hyper-Engine Loop
+function engine() {
+    // 60FPS Vector Physics
+    const accel = 1.2;
+    const friction = 0.92;
+    if (keys['KeyW']) player.vy -= accel;
+    if (keys['KeyS']) player.vy += accel;
+    if (keys['KeyA']) player.vx -= accel;
+    if (keys['KeyD']) player.vx += accel;
 
-            set(ref(db, 'players/' + me.id), me);
+    player.vx *= friction;
+    player.vy *= friction;
+    player.x += player.vx;
+    player.y += player.vy;
 
-            // DRAWING
-            ctx.fillStyle = "#000"; ctx.fillRect(0,0,canvas.width, canvas.height);
-            
-            ctx.save();
-            ctx.translate(canvas.width/2 - me.x, canvas.height/2 - me.y);
+    // Sync to Firebase
+    set(ref(db, 'arena/players/' + myId), player);
 
-            // Draw Atmospheric Particles
-            particles.forEach(p => {
-                ctx.fillStyle = theme;
-                ctx.fillRect(me.x - canvas.width/2 + p.x, me.y - canvas.height/2 + p.y, p.s, p.s);
-            });
+    // Render Scene
+    ctx.fillStyle = '#020205';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw World Grid
-            ctx.strokeStyle = theme + "33"; 
-            for(let i=0; i<10000; i+=200) {
-                ctx.strokeRect(i, 0, 200, 10000);
-            }
+    // Draw Grid with Motion Blur
+    ctx.strokeStyle = '#111';
+    for(let i=0; i<canvas.width; i+=100) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
 
-            // Draw Players with "Squash & Stretch"
-            onValue(ref(db, 'players'), (s) => players = s.val() || {});
-            Object.values(players).forEach(p => {
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.angle);
-                ctx.scale(p.scale, 1);
-                
-                // Neon Character Glow
-                ctx.shadowBlur = 20; ctx.shadowColor = theme;
-                ctx.fillStyle = theme;
-                ctx.fillRect(-20, -20, 40, 40);
-                
-                // Animated Eye
-                ctx.fillStyle = "#fff"; ctx.fillRect(5, -10, 5, 5);
-                ctx.restore();
-            });
+    // Draw Players & Parry Shield
+    onValue(ref(db, 'arena/players'), (s) => participants = s.val() || {});
+    Object.values(participants).forEach(p => {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        
+        // Glow Effect
+        ctx.shadowBlur = 20; ctx.shadowColor = p.color;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-20, -20, 40, 40);
 
-            ctx.restore();
-            requestAnimationFrame(loop);
+        if(p.state === "parry") {
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-30, -30, 60, 60);
         }
+        ctx.restore();
+    });
 
-        const keys = {};
-        window.onkeydown = (e) => keys[e.code] = true;
-        window.onkeyup = (e) => keys[e.code] = false;
-        onDisconnect(ref(db, 'players/' + me.id)).remove();
-    </script>
+    requestAnimationFrame(engine);
+}
+
+onDisconnect(ref(db, 'arena/players/' + myId)).remove();
+engine();
+</script>
 </body>
 </html>
