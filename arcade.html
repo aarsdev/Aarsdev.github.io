@@ -1,0 +1,175 @@
+<section id="crazy-arcade">
+  <h2>🎮 Crazy Arcade</h2>
+  <p>Use ⬅️➡️ keys to dodge enemies and collect stars! Survive as long as you can!</p>
+  <p>Score: <span id="arcade-score">0</span></p>
+  <div id="arcade-area"></div>
+  <p id="arcade-gameover" style="color:red; display:none; font-size:24px;">💥 Game Over! Press R to Restart</p>
+</section>
+
+<style>
+  #arcade-area {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background-color: #111;
+    border: 2px solid #00ff9c;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+
+  #player {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    background-color: #00ff9c;
+    border-radius: 5px;
+    transform: translateX(-50%);
+  }
+
+  .enemy {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background-color: red;
+    top: 0;
+  }
+
+  .powerup {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    background-color: gold;
+    top: 0;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+
+<script>
+const arcadeArea = document.getElementById('arcade-area');
+const arcadeScore = document.getElementById('arcade-score');
+const arcadeGameOver = document.getElementById('arcade-gameover');
+
+const player = document.createElement('div');
+player.id = 'player';
+arcadeArea.appendChild(player);
+
+let playerX = arcadeArea.clientWidth/2 - 20;
+let score = 0;
+let enemies = [];
+let powerups = [];
+let speed = 2;
+let gameRunning = true;
+
+// Player movement
+document.addEventListener('keydown', e => {
+  if(!gameRunning) {
+    if(e.code === 'KeyR') restartGame();
+    return;
+  }
+  if(e.code === 'ArrowLeft') playerX -= 30;
+  if(e.code === 'ArrowRight') playerX += 30;
+  if(playerX < 0) playerX = 0;
+  if(playerX > arcadeArea.clientWidth - 40) playerX = arcadeArea.clientWidth - 40;
+  player.style.left = playerX + 'px';
+});
+
+// Spawn enemies
+function spawnEnemy() {
+  const enemy = document.createElement('div');
+  enemy.classList.add('enemy');
+  enemy.style.left = Math.random() * (arcadeArea.clientWidth - 30) + 'px';
+  arcadeArea.appendChild(enemy);
+  enemies.push(enemy);
+}
+
+// Spawn powerups
+function spawnPowerup() {
+  const powerup = document.createElement('div');
+  powerup.classList.add('powerup');
+  powerup.style.left = Math.random() * (arcadeArea.clientWidth - 25) + 'px';
+  powerup.innerText = '⭐';
+  arcadeArea.appendChild(powerup);
+  powerups.push(powerup);
+}
+
+// Move enemies and check collisions
+function moveObjects() {
+  enemies.forEach((enemy,index)=>{
+    let top = parseInt(enemy.style.top) || 0;
+    top += speed;
+    enemy.style.top = top + 'px';
+
+    // Collision
+    if(top + 30 >= 380 && playerX < parseInt(enemy.style.left) + 30 && playerX + 40 > parseInt(enemy.style.left)) {
+      gameOver();
+    }
+
+    // Remove offscreen
+    if(top > 400) {
+      arcadeArea.removeChild(enemy);
+      enemies.splice(index,1);
+      score += 1;
+      arcadeScore.innerText = score;
+      if(score % 10 === 0) speed += 0.5;
+    }
+  });
+
+  powerups.forEach((pu,index)=>{
+    let top = parseInt(pu.style.top) || 0;
+    top += speed;
+    pu.style.top = top + 'px';
+
+    // Collision with player
+    if(top + 25 >= 380 && playerX < parseInt(pu.style.left) + 25 && playerX + 40 > parseInt(pu.style.left)) {
+      score += 5;
+      arcadeScore.innerText = score;
+      arcadeArea.removeChild(pu);
+      powerups.splice(index,1);
+    }
+
+    if(top > 400) {
+      arcadeArea.removeChild(pu);
+      powerups.splice(index,1);
+    }
+  });
+}
+
+// Game loop
+function gameLoop() {
+  if(!gameRunning) return;
+  moveObjects();
+  requestAnimationFrame(gameLoop);
+}
+
+// Randomly spawn enemies and powerups
+setInterval(spawnEnemy, 1000);
+setInterval(spawnPowerup, 5000);
+
+function gameOver() {
+  gameRunning = false;
+  arcadeGameOver.style.display = 'block';
+}
+
+function restartGame() {
+  arcadeGameOver.style.display = 'none';
+  enemies.forEach(e=>arcadeArea.removeChild(e));
+  powerups.forEach(p=>arcadeArea.removeChild(p));
+  enemies = [];
+  powerups = [];
+  score = 0;
+  speed = 2;
+  arcadeScore.innerText = score;
+  playerX = arcadeArea.clientWidth/2 - 20;
+  player.style.left = playerX + 'px';
+  gameRunning = true;
+  gameLoop();
+}
+
+// Start the game
+gameLoop();
+</script>
