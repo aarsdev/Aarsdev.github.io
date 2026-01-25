@@ -1,49 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEONVERSE | OMNI-WORLD</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
+    <title>NEONVERSE 3D | OPEN WORLD</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #020205; overflow: hidden; font-family: 'Orbitron', sans-serif; cursor: crosshair; }
-        #hud { position: fixed; inset: 0; pointer-events: none; z-index: 100; padding: 25px; }
-        .island-banner { font-size: 32px; font-weight: 900; color: #00f2ff; text-shadow: 0 0 20px #00f2ff; text-align: center; width: 100%; }
-        .xp-container { width: 300px; height: 12px; background: rgba(255,255,255,0.1); border: 2px solid #00f2ff; border-radius: 6px; overflow: hidden; }
-        #xp-fill { width: 30%; height: 100%; background: #00f2ff; box-shadow: 0 0 15px #00f2ff; }
-        .quest-ui { position: fixed; bottom: 120px; left: 30px; background: rgba(0,0,0,0.8); border-left: 5px solid #ff00ff; padding: 15px; width: 260px; }
-        #hotbar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
-        .slot { width: 70px; height: 70px; background: #111; border: 2px solid #333; display: flex; align-items: center; justify-content: center; font-size: 28px; transition: 0.2s; }
-        .active-slot { border-color: #ff00ff; box-shadow: 0 0 20px #ff00ff; transform: scale(1.1); }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
+        #ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; color: #fff; padding: 20px; }
+        .stats { background: rgba(0,242,255,0.1); border-left: 4px solid #00f2ff; padding: 15px; width: 200px; }
+        #crosshair { position: fixed; top: 50%; left: 50%; width: 10px; height: 10px; border: 2px solid #ff00ff; border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
 <body>
 
-<div id="hud">
-    <div style="display: flex; justify-content: space-between;">
-        <div>
-            <div class="xp-container"><div id="xp-fill"></div></div>
-            <div style="font-size: 12px; margin-top: 5px;">RANK: ELITE EXPLORER</div>
-        </div>
-        <div id="biome-text" class="island-banner">NEBULA SECTOR</div>
-        <div style="text-align: right;">CREDITS: <span id="money">1,500</span></div>
-    </div>
-    <div class="quest-ui">
-        <b style="color: #ff00ff; font-size: 10px;">OBJECTIVE</b><br>
-        <span id="quest-text">Reach the "Ancient Spire" at X: 5000</span>
+<div id="ui">
+    <div class="stats">
+        <div>LVL: <span id="lvl">1</span></div>
+        <div id="quest" style="font-size: 10px; color: #ff00ff; margin-top: 5px;">QUEST: TRAVEL TO NEXT ISLAND</div>
     </div>
 </div>
+<div id="crosshair"></div>
 
-<div id="hotbar">
-    <div class="slot active-slot">⚔️</div>
-    <div class="slot">🔫</div>
-    <div class="slot">💎</div>
-</div>
-
-<canvas id="game"></canvas>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
 
 <script type="module">
+import * as THREE from 'three';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getDatabase, ref, set, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
+// --- FIREBASE SETUP ---
 const firebaseConfig = {
     apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
     authDomain: "neonverse-aars.firebaseapp.com",
@@ -53,98 +39,99 @@ const firebaseConfig = {
     messagingSenderId: "612438599755",
     appId: "1:612438599755:web:43f1c0a553d56c3aa045ce"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const myId = "p_" + Math.floor(Math.random()*999);
 
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+// --- 3D ENGINE SETUP ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020205);
+scene.fog = new THREE.FogExp2(0x020205, 0.002);
 
-let me = { id: 'u_'+Math.floor(Math.random()*999), x: 500, y: 500, vx: 0, vy: 0, ang: 0, anim: 0, color: "#00f2ff" };
-let players = {}, stars = Array.from({length: 200}, () => ({x: Math.random()*2000, y: Math.random()*2000, z: Math.random()*3}));
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 10000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-const keys = {};
-window.onkeydown = (e) => keys[e.code] = true;
-window.onkeyup = (e) => keys[e.code] = false;
-window.onmousemove = (e) => me.ang = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
+// --- LIGHTING ---
+const light = new THREE.PointLight(0x00f2ff, 1000, 500);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
 
-function drawAvatar(p) {
-    const walk = Math.sin(p.anim) * 5;
-    const leg = Math.sin(p.anim * 0.8) * 12;
+// --- ISLANDS ---
+function createIsland(x, z, color) {
+    const geo = new THREE.BoxGeometry(100, 10, 100);
+    const mat = new THREE.MeshPhongMaterial({ color: color, emissive: color, emissiveIntensity: 0.2 });
+    const island = new THREE.Mesh(geo, mat);
+    island.position.set(x, -5, z);
+    scene.add(island);
     
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    
-    // Character Shadow
-    ctx.shadowBlur = 20; ctx.shadowColor = p.color;
-    
-    // Humanoid Components
-    ctx.fillStyle = "#fff"; // Head
-    ctx.beginPath(); ctx.arc(0, -45 + walk, 10, 0, Math.PI*2); ctx.fill();
-    
-    ctx.fillStyle = p.color; // Torso
-    ctx.fillRect(-12, -35 + walk, 24, 35);
-    
-    // Arms
-    ctx.fillRect(-22, -30 + walk, 8, 20);
-    ctx.fillRect(14, -30 + walk, 8, 20);
-    
-    // Animated Legs
-    ctx.fillRect(-10, 0, 8, 20 + leg);
-    ctx.fillRect(2, 0, 8, 20 - leg);
-    
-    ctx.restore();
+    // Grid Helper for "Pro" look
+    const grid = new THREE.GridHelper(100, 10, color, 0x444444);
+    grid.position.set(x, 0.1, z);
+    scene.add(grid);
 }
+createIsland(0, 0, 0x00f2ff);    // Starter Island
+createIsland(500, 500, 0xff00ff); // Battle Island
 
-function update() {
-    // ⚙️ Hyper-Physics (Sway & Weight)
-    const accel = 0.8;
-    const fric = 0.92;
-    let moving = false;
-    
-    if (keys['KeyW']) { me.vy -= accel; moving = true; }
-    if (keys['KeyS']) { me.vy += accel; moving = true; }
-    if (keys['KeyA']) { me.vx -= accel; moving = true; }
-    if (keys['KeyD']) { me.vx += accel; moving = true; }
-    
-    me.vx *= fric; me.vy *= fric;
-    me.x += me.vx; me.y += me.vy;
-    if (moving) me.anim += 0.2;
+// --- PLAYER ---
+const playerGroup = new THREE.Group();
+const bodyGeo = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
+const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00f2ff });
+const body = new THREE.Mesh(bodyGeo, bodyMat);
+playerGroup.add(body);
+scene.add(playerGroup);
 
-    // 🌌 DRAWING PIPELINE
-    // 1. Background Nebula
-    let g = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 10, canvas.width/2, canvas.height/2, canvas.width);
-    g.addColorStop(0, '#0a0025'); g.addColorStop(1, '#020005');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+// --- INPUTS ---
+const keys = {};
+window.addEventListener('keydown', (e) => keys[e.code] = true);
+window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    // 2. Parallax Stars
-    ctx.fillStyle = "#fff";
-    stars.forEach(s => {
-        let sx = (s.x - me.x * 0.1) % 2000;
-        let sy = (s.y - me.y * 0.1) % 2000;
-        ctx.fillRect(sx < 0 ? sx + canvas.width : sx, sy < 0 ? sy + canvas.height : sy, s.z, s.z);
+let otherPlayers = {};
+onValue(ref(db, 'players'), (snap) => {
+    const data = snap.val();
+    for (let id in data) {
+        if (id === myId) continue;
+        if (!otherPlayers[id]) {
+            const m = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ color: 0xff00ff }));
+            scene.add(m);
+            otherPlayers[id] = m;
+        }
+        otherPlayers[id].position.set(data[id].x, data[id].y, data[id].z);
+    }
+});
+
+onDisconnect(ref(db, 'players/' + myId)).remove();
+
+// --- GAME LOOP ---
+function animate() {
+    requestAnimationFrame(animate);
+
+    // Movement Physics
+    const speed = 0.5;
+    if (keys['KeyW']) playerGroup.translateZ(-speed);
+    if (keys['KeyS']) playerGroup.translateZ(speed);
+    if (keys['KeyA']) playerGroup.translateX(-speed);
+    if (keys['KeyD']) playerGroup.translateX(speed);
+    if (keys['Space']) playerGroup.position.y += 0.2;
+    playerGroup.position.y -= 0.1; // Gravity
+    if (playerGroup.position.y < 0) playerGroup.position.y = 0;
+
+    // Camera Follow
+    camera.position.set(playerGroup.position.x, playerGroup.position.y + 5, playerGroup.position.z + 10);
+    camera.lookAt(playerGroup.position);
+    light.position.copy(playerGroup.position);
+
+    // Sync to Firebase
+    set(ref(db, 'players/' + myId), {
+        x: playerGroup.position.x,
+        y: playerGroup.position.y,
+        z: playerGroup.position.z
     });
 
-    // 3. World Entities
-    ctx.save();
-    ctx.translate(canvas.width/2 - me.x, canvas.height/2 - me.y);
-    
-    // Island Drawing
-    ctx.strokeStyle = "#00f2ff44"; ctx.lineWidth = 5;
-    ctx.strokeRect(0, 0, 1000, 800); // Starter Island
-    
-    onValue(ref(db, 'players'), (s) => players = s.val() || {});
-    Object.values(players).forEach(p => drawAvatar(p));
-    
-    ctx.restore();
-
-    set(ref(db, 'players/' + me.id), me);
-    requestAnimationFrame(update);
+    renderer.render(scene, camera);
 }
-
-onDisconnect(ref(db, 'players/' + me.id)).remove();
-update();
+animate();
 </script>
 </body>
 </html>
