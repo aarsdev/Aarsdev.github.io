@@ -1,43 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEONVERSE | INFINITE ADVENTURE</title>
+    <title>NEONVERSE | BATTLE WARZONE</title>
     <style>
-        body { background: #020205; color: #00f2ff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; }
-        #ui { position: fixed; top: 20px; left: 20px; pointer-events: none; z-index: 10; }
-        #chat { position: fixed; bottom: 20px; left: 20px; width: 300px; background: rgba(0,0,0,0.8); border: 1px solid #00f2ff; padding: 10px; }
-        #inv { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; }
-        .slot { width: 50px; height: 50px; border: 2px solid #333; display: flex; align-items: center; justify-content: center; background: #000; cursor: pointer; pointer-events: auto; }
-        .active { border-color: #ff00ff; box-shadow: 0 0 15px #ff00ff; }
-        canvas { display: block; }
+        body { background: #010103; color: #fff; font-family: 'Orbitron', sans-serif; margin: 0; overflow: hidden; }
+        #hud { position: fixed; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; }
+        #xp-bar { width: 400px; height: 12px; border: 2px solid #00f2ff; background: rgba(0,242,255,0.1); border-radius: 6px; }
+        #xp-fill { height: 100%; width: 0%; background: #00f2ff; box-shadow: 0 0 15px #00f2ff; transition: 0.3s; }
+        #kill-feed { position: fixed; top: 100px; right: 20px; text-align: right; color: #ff00ff; font-size: 14px; text-shadow: 0 0 5px #000; }
+        #ability-slots { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; }
+        .ability { width: 70px; height: 70px; border: 2px solid #555; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; }
+        .ready { border-color: #00f2ff; box-shadow: 0 0 10px #00f2ff; }
+        canvas { cursor: crosshair; }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div id="ui">
-        <h1 style="margin:0; font-size: 40px; text-shadow: 0 0 10px #00f2ff;">NEONVERSE VOXEL</h1>
-        <p>CORES COLLECTED: <span id="score">0</span></p>
-        <p style="font-size: 12px; color: #ff00ff;">TASK: Find the Hidden Golden Cores in the deep grid.</p>
+    <div id="hud">
+        <div>
+            <h1 style="margin:0; text-shadow: 0 0 20px #ff00ff; color: #ff00ff;">NEONVERSE: WARZONE</h1>
+            <div id="xp-bar"><div id="xp-fill"></div></div>
+            <p id="level-display">RANK: 1 - RECRUIT</p>
+        </div>
+        <div id="kill-feed"></div>
     </div>
 
-    <div id="chat">
-        <div id="msgs" style="height: 100px; overflow-y: auto; font-size: 12px; margin-bottom: 5px;"></div>
-        <input type="text" id="chatInput" placeholder="Press Enter to broadcast..." style="width: 90%; background: #000; color: #00f2ff; border: 1px solid #00f2ff;">
+    <div id="ability-slots">
+        <div class="ability ready" id="ab1"><span>[L-CLICK]</span><br>PLASMA</div>
+        <div class="ability" id="ab2"><span>[SPACE]</span><br>DASH</div>
+        <div class="ability" id="ab3"><span>[SHIFT]</span><br>SHIELD</div>
     </div>
 
-    <div id="inv">
-        <div class="slot active" data-clr="#00f2ff" onclick="sel(this)">💠</div>
-        <div class="slot" data-clr="#ff00ff" onclick="sel(this)">🌸</div>
-        <div class="slot" data-clr="#ffff00" onclick="sel(this)">🔥</div>
-    </div>
-
-    <canvas id="game"></canvas>
+    <canvas id="warzone"></canvas>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, onDisconnect, remove, push } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, onDisconnect, push, remove, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-        // Your Config from image_6339d1.jpg
         const firebaseConfig = {
             apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
             authDomain: "neonverse-aars.firebaseapp.com",
@@ -51,75 +51,75 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        const cvs = document.getElementById('game');
-        const ctx = cvs.getContext('2d');
-        cvs.width = window.innerWidth;
-        cvs.height = window.innerHeight;
+        const canvas = document.getElementById('warzone');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-        let myId = "explorer_" + Math.floor(Math.random() * 9999);
-        let camX = 2000, camY = 2000, score = 0, selClr = "#00f2ff";
-        let players = {}, blocks = {}, keys = {};
+        let me = { id: 'u_'+Math.floor(Math.random()*999), x: 2500, y: 2500, hp: 100, xp: 0, lvl: 1, color: '#00f2ff' };
+        let players = {}, projectiles = {}, keys = {};
 
-        // 💠 Interaction: Building like Minecraft
-        cvs.onmousedown = (e) => {
-            const wx = Math.floor((e.clientX + camX - cvs.width/2) / 40) * 40;
-            const wy = Math.floor((e.clientY + camY - cvs.height/2) / 40) * 40;
-            const bId = `${wx}_${wy}`;
-            if (e.button === 0) set(ref(db, 'world/' + bId), { x: wx, y: wy, clr: selClr });
-            else remove(ref(db, 'world/' + bId));
-        };
-        cvs.oncontextmenu = (e) => e.preventDefault();
-        window.sel = (el) => {
-            document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
-            el.classList.add('active'); selClr = el.dataset.clr;
+        // ⚔️ COMBAT SYSTEM
+        canvas.onmousedown = (e) => {
+            const angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
+            push(ref(db, 'warzone/projectiles'), { owner: me.id, x: me.x, y: me.y, angle: angle, speed: 15, damage: 10 });
         };
 
-        // 💬 Adventure Chat
-        const cin = document.getElementById('chatInput');
-        cin.onkeydown = (e) => {
-            if(e.key === 'Enter' && cin.value) {
-                push(ref(db, 'chat'), { name: myId.split('_')[1], txt: cin.value });
-                cin.value = '';
+        window.onkeydown = (e) => keys[e.code] = true;
+        window.onkeyup = (e) => keys[e.code] = false;
+
+        onValue(ref(db, 'warzone/projectiles'), (s) => projectiles = s.val() || {});
+        onValue(ref(db, 'players'), (s) => players = s.val() || {});
+        onDisconnect(ref(db, 'players/' + me.id)).remove();
+
+        function gameLoop() {
+            // Movement Physics
+            let speed = 8;
+            if (keys['Space']) speed = 20; // Dash ability
+            if (keys['KeyW']) me.y -= speed;
+            if (keys['KeyS']) me.y += speed;
+            if (keys['KeyA']) me.x -= speed;
+            if (keys['KeyD']) me.x += speed;
+
+            set(ref(db, 'players/' + me.id), me);
+            document.getElementById('xp-fill').style.width = (me.xp % 100) + '%';
+
+            // Rendering Warzone
+            ctx.fillStyle = '#010103'; ctx.fillRect(0,0,canvas.width, canvas.height);
+            ctx.save(); ctx.translate(canvas.width/2 - me.x, canvas.height/2 - me.y);
+
+            // Draw Dynamic Grid
+            ctx.strokeStyle = '#0a0a1a';
+            for(let i=0; i<5000; i+=200) {
+                ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,5000); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(5000,i); ctx.stroke();
             }
-        };
-        onValue(ref(db, 'chat'), (s) => {
-            const m = s.val() || {};
-            document.getElementById('msgs').innerHTML = Object.values(m).slice(-5).map(v => `<div><b>${v.name}:</b> ${v.txt}</div>`).join('');
-        });
 
-        // 🌍 World Sync
-        onValue(ref(db, 'world'), (s) => { blocks = s.val() || {}; });
-        onValue(ref(db, 'players'), (s) => { players = s.val() || {}; });
-        onDisconnect(ref(db, 'players/' + myId)).remove();
-
-        window.onkeydown = (e) => keys[e.key.toLowerCase()] = true;
-        window.onkeyup = (e) => keys[e.key.toLowerCase()] = false;
-
-        function play() {
-            if(keys['w']) camY -= 8; if(keys['s']) camY += 8;
-            if(keys['a']) camX -= 8; if(keys['d']) camX += 8;
-
-            set(ref(db, 'players/' + myId), { x: camX, y: camY, clr: '#fff' });
-
-            ctx.fillStyle = "#020205"; ctx.fillRect(0, 0, cvs.width, cvs.height);
-            ctx.save(); ctx.translate(cvs.width/2 - camX, cvs.height/2 - camY);
-
-            // Draw Persistent World
-            Object.values(blocks).forEach(b => {
-                ctx.shadowBlur = 10; ctx.shadowColor = b.clr; ctx.fillStyle = b.clr;
-                ctx.fillRect(b.x + 2, b.y + 2, 36, 36);
+            // Draw Projectiles
+            Object.values(projectiles).forEach(p => {
+                ctx.fillStyle = '#ff00ff';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
             });
 
-            // Draw Online Explorers
+            // Draw Combatants
             Object.values(players).forEach(p => {
-                ctx.shadowBlur = 0; ctx.fillStyle = "#fff";
-                ctx.fillRect(p.x - 15, p.y - 15, 30, 30);
+                ctx.shadowBlur = 20; ctx.shadowColor = p.color;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x-20, p.y-20, 40, 40);
+                
+                // Name & HP Bar
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 12px Orbitron";
+                ctx.fillText(p.id + " [LVL "+p.lvl+"]", p.x-20, p.y-45);
+                ctx.fillStyle = "red"; ctx.fillRect(p.x-20, p.y-40, 40, 5);
+                ctx.fillStyle = "lime"; ctx.fillRect(p.x-20, p.y-40, (p.hp/100)*40, 5);
             });
 
             ctx.restore();
-            requestAnimationFrame(play);
+            requestAnimationFrame(gameLoop);
         }
-        play();
+        gameLoop();
     </script>
 </body>
 </html>
