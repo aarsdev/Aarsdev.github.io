@@ -1,34 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEONVERSE | HYPER BATTLE</title>
+    <title>NEONVERSE | RIVALS PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; }
-        #ui-layer { position: fixed; inset: 0; pointer-events: none; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
-        #rank-card { background: rgba(255,0,255,0.1); border-left: 5px solid #ff00ff; padding: 15px; width: 200px; }
-        #kill-feed { color: #00f2ff; text-align: right; font-size: 14px; }
-        #crosshair { position: fixed; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 1000; }
+        body { margin: 0; background: #010103; color: #fff; font-family: 'Orbitron', sans-serif; overflow: hidden; cursor: none; }
+        #ui { position: fixed; inset: 0; pointer-events: none; padding: 25px; }
+        #match-status { text-align: center; font-size: 32px; color: #ff00ff; text-shadow: 0 0 15px #ff00ff; }
+        #reticle { position: fixed; width: 20px; height: 20px; border: 2px solid #00f2ff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 100; }
+        .hp-bar-container { position: absolute; height: 8px; width: 60px; background: rgba(255,255,255,0.1); border: 1px solid #fff; }
+        .hp-fill { height: 100%; background: #00ff88; transition: width 0.2s; }
     </style>
 </head>
 <body>
 
-<div id="crosshair"></div>
-<div id="ui-layer">
-    <div id="rank-card">
-        <div style="font-size: 10px;">GLOBAL RANK</div>
-        <div id="player-rank" style="font-size: 24px; color: #ff00ff;">ELITE #1</div>
+<div id="reticle"></div>
+<div id="ui">
+    <div id="match-status">NEON RIVALS: SEEKING OPPONENT</div>
+    <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+        <div class="stat">KILLS: <span id="kills">0</span></div>
+        <div class="stat">WINS: <span id="wins">0</span></div>
     </div>
-    <div id="kill-feed">SYSTEM: ARENA LIVE</div>
 </div>
 
-<canvas id="battleCanvas"></canvas>
+<canvas id="rivalsArena"></canvas>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getDatabase, ref, set, onValue, onDisconnect, push, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-// Your Verified Config
 const firebaseConfig = {
     apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
     authDomain: "neonverse-aars.firebaseapp.com",
@@ -42,82 +42,87 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const canvas = document.getElementById('battleCanvas');
+const canvas = document.getElementById('rivalsArena');
 const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-// Player & Game State
-let myId = "v_" + Math.floor(Math.random() * 999);
-let player = { x: 500, y: 500, vx: 0, vy: 0, size: 30, color: "#ff00ff", state: "idle" };
-let ball = { x: 0, y: 0, target: "", speed: 5 };
-let participants = {};
+let myId = "rival_" + Math.floor(Math.random() * 999);
+let me = { x: canvas.width/2, y: canvas.height/2, vx: 0, vy: 0, hp: 100, kills: 0, color: "#00f2ff" };
+let players = {}, mouse = { x: 0, y: 0 };
 
-// 💠 Mouse Interaction (Parry Mechanic like Blade Ball)
+// 🎯 Aiming & Hitscan Raycast
 window.onmousemove = (e) => {
-    document.getElementById('crosshair').style.left = e.clientX + 'px';
-    document.getElementById('crosshair').style.top = e.clientY + 'px';
+    mouse.x = e.clientX; mouse.y = e.clientY;
+    document.getElementById('reticle').style.left = e.clientX + 'px';
+    document.getElementById('reticle').style.top = e.clientY + 'px';
 };
 
 window.onmousedown = () => {
-    player.state = "parry"; // Activate block
-    setTimeout(() => player.state = "idle", 150);
+    // Raycast check: Did we click on an enemy?
+    Object.keys(players).forEach(id => {
+        if(id === myId) return;
+        let p = players[id];
+        let dist = Math.hypot(p.x - mouse.x, p.y - mouse.y);
+        if(dist < 30) { // Hitbox size
+            set(ref(db, `players/${id}/hp`), Math.max(0, p.hp - 25));
+            if(p.hp <= 25) me.kills++;
+        }
+    });
 };
 
 const keys = {};
 window.onkeydown = (e) => keys[e.code] = true;
 window.onkeyup = (e) => keys[e.code] = false;
 
-// 💠 The Hyper-Engine Loop
-function engine() {
-    // 60FPS Vector Physics
-    const accel = 1.2;
-    const friction = 0.92;
-    if (keys['KeyW']) player.vy -= accel;
-    if (keys['KeyS']) player.vy += accel;
-    if (keys['KeyA']) player.vx -= accel;
-    if (keys['KeyD']) player.vx += accel;
+function update() {
+    // Rivals Movement: High Friction + Dash
+    const speed = keys['ShiftLeft'] ? 1.5 : 0.8;
+    const friction = 0.9;
+    
+    if (keys['KeyW']) me.vy -= speed; if (keys['KeyS']) me.vy += speed;
+    if (keys['KeyA']) me.vx -= speed; if (keys['KeyD']) me.vx += speed;
 
-    player.vx *= friction;
-    player.vy *= friction;
-    player.x += player.vx;
-    player.y += player.vy;
+    me.vx *= friction; me.vy *= friction;
+    me.x += me.vx; me.y += me.vy;
 
-    // Sync to Firebase
-    set(ref(db, 'arena/players/' + myId), player);
+    set(ref(db, 'players/' + myId), me);
 
-    // Render Scene
-    ctx.fillStyle = '#020205';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // DRAWING ENGINE
+    ctx.fillStyle = '#020205'; ctx.fillRect(0,0,canvas.width, canvas.height);
+    
+    // Grid Perspective
+    ctx.strokeStyle = '#00f2ff08';
+    for(let i=0; i<canvas.width; i+=80) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
 
-    // Draw Grid with Motion Blur
-    ctx.strokeStyle = '#111';
-    for(let i=0; i<canvas.width; i+=100) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
-
-    // Draw Players & Parry Shield
-    onValue(ref(db, 'arena/players'), (s) => participants = s.val() || {});
-    Object.values(participants).forEach(p => {
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        
-        // Glow Effect
+    onValue(ref(db, 'players'), (s) => players = s.val() || {});
+    
+    Object.values(players).forEach(p => {
+        // Combat Glow
         ctx.shadowBlur = 20; ctx.shadowColor = p.color;
         ctx.fillStyle = p.color;
+        
+        // Character Body
+        ctx.save();
+        ctx.translate(p.x, p.y);
         ctx.fillRect(-20, -20, 40, 40);
-
-        if(p.state === "parry") {
-            ctx.strokeStyle = "#fff";
-            ctx.lineWidth = 4;
-            ctx.strokeRect(-30, -30, 60, 60);
-        }
+        
+        // HP Bar (Pro UI)
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#333"; ctx.fillRect(-25, -35, 50, 5);
+        ctx.fillStyle = "#00ff88"; ctx.fillRect(-25, -35, (p.hp/100)*50, 5);
         ctx.restore();
+
+        if(p.hp <= 0 && p.id !== myId) {
+            document.getElementById('match-status').innerText = "RIVAL ELIMINATED!";
+            setTimeout(() => { set(ref(db, `players/${p.id}/hp`), 100); }, 2000);
+        }
     });
 
-    requestAnimationFrame(engine);
+    requestAnimationFrame(update);
 }
 
-onDisconnect(ref(db, 'arena/players/' + myId)).remove();
-engine();
+onDisconnect(ref(db, 'players/' + myId)).remove();
+update();
 </script>
 </body>
 </html>
