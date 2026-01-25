@@ -13,6 +13,7 @@
     input, button {
       padding: 10px;
       font-size: 16px;
+      margin: 5px;
     }
   </style>
 </head>
@@ -31,17 +32,24 @@
 let secret = Math.floor(Math.random() * 100) + 1;
 
 function checkGuess() {
-  let userGuess = document.getElementById("guess").value;
+  let userGuess = parseInt(document.getElementById("guess").value);
 
-  if (userGuess == secret) {
-    document.getElementById("result").innerText = "🎉 You got it!";
+  if (userGuess === secret) {
+    document.getElementById("result").innerText = "🎉 You got it! New number generated!";
+    resetNumber(); // auto-reset after correct guess
   } else if (userGuess < secret) {
     document.getElementById("result").innerText = "Too low!";
   } else {
     document.getElementById("result").innerText = "Too high!";
   }
 }
+
+function resetNumber() {
+  secret = Math.floor(Math.random() * 100) + 1; // pick a new number
+  document.getElementById("guess").value = "";   // clear input
+}
 </script>
 
 </body>
 </html>
+
