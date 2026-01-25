@@ -2,33 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NEONVERSE | OMNI-ENGINE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
+    <title>NEONVERSE | GLOBAL ODYSSEY</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; cursor: none; }
-        #game-ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
-        .vignette { position: fixed; inset: 0; background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.8) 100%); }
-        #reticle { position: fixed; width: 30px; height: 30px; border: 1px solid #00f2ff; border-radius: 50%; transform: translate(-50%, -50%); mix-blend-mode: difference; }
-        .kill-feed { position: fixed; top: 20px; right: 20px; text-align: right; color: #ff00ff; font-size: 14px; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; color: #fff; }
+        #ui-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+        .hud-top { display: flex; justify-content: space-between; padding: 25px; background: linear-gradient(to bottom, rgba(0,242,255,0.2), transparent); }
+        .quest-log { position: fixed; left: 20px; top: 120px; background: rgba(0,0,0,0.7); border-left: 4px solid #ff00ff; padding: 15px; width: 250px; }
+        #inventory { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; pointer-events: auto; }
+        .slot { width: 70px; height: 70px; border: 2px solid #444; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; }
+        .active-slot { border-color: #00f2ff; box-shadow: 0 0 15px #00f2ff; }
+        #avatar-label { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); color: #00f2ff; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="vignette"></div>
-<div id="reticle"></div>
-<div id="game-ui">
-    <div style="padding: 30px;">
-        <h1 style="color: #00f2ff; margin: 0; font-size: 40px; text-shadow: 0 0 20px #00f2ff;">NEONVERSE</h1>
-        <p style="color: #ff00ff; letter-spacing: 5px;">HYPER-COMPETITIVE ARENA</p>
+<div id="ui-overlay">
+    <div class="hud-top">
+        <div>LEVEL <span id="lvl">1</span> [EXP: <span id="xp">0</span>/1000]</div>
+        <div id="island-name" style="font-size: 24px; font-weight: 900; color: #ff00ff;">SECTOR: ORIGIN ISLE</div>
+        <div id="weapon-name">EQUIPPED: NONE</div>
     </div>
-    <div class="kill-feed" id="logs">ARENA_INITIALIZED...</div>
+    <div class="quest-log">
+        <b style="color: #ff00ff;">CURRENT QUEST</b><br>
+        <span id="quest-text">Travel to the "Crimson Island" at X: 4000 to find your first weapon.</span>
+    </div>
+    <div id="avatar-label">PLAYER_1</div>
 </div>
 
-<canvas id="omniCanvas"></canvas>
+<div id="inventory">
+    <div class="slot active-slot">👊<br>MELEE</div>
+    <div class="slot">⚔️<br>BLADE</div>
+    <div class="slot">🔫<br>RIFLE</div>
+</div>
+
+<canvas id="worldCanvas"></canvas>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getDatabase, ref, set, onValue, onDisconnect, push, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase, ref, set, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
@@ -43,93 +55,92 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const canvas = document.getElementById('omniCanvas');
+const canvas = document.getElementById('worldCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-let myId = "USR_" + Math.random().toString(36).substr(2, 4).toUpperCase();
-let player = { x: 2500, y: 2500, vx: 0, vy: 0, rot: 0, hp: 100, anim: 0 };
-let world = { players: {}, particles: [] };
-
-// 🎯 Aiming & VFX
-window.onmousemove = (e) => {
-    document.getElementById('reticle').style.left = e.clientX + 'px';
-    document.getElementById('reticle').style.top = e.clientY + 'px';
-};
-
-// ⚔️ Professional Combat Trigger
-window.onmousedown = () => {
-    // Screen Shake Logic
-    canvas.style.transform = `translate(${Math.random()*10-5}px, ${Math.random()*10-5}px)`;
-    setTimeout(() => canvas.style.transform = 'none', 50);
-    
-    // Hitscan Logic
-    Object.keys(world.players).forEach(id => {
-        if(id === myId) return;
-        let p = world.players[id];
-        let d = Math.hypot(p.x - (player.x + (window.innerWidth/2)), p.y - (player.y + (window.innerHeight/2)));
-        // (Simplified for demo, usually involves mouse world-space coords)
-    });
-};
+let myId = "USR_" + Math.floor(Math.random() * 9999);
+let player = { x: 500, y: 500, vx: 0, vy: 0, anim: 0, hp: 100, xp: 0, lvl: 1, color: "#00f2ff" };
+let others = {};
 
 const keys = {};
 window.onkeydown = (e) => keys[e.code] = true;
 window.onkeyup = (e) => keys[e.code] = false;
 
-function render() {
-    // Advanced Physics (Weight & Momentum)
-    const accel = keys['ShiftLeft'] ? 2.5 : 1.2;
-    const friction = 0.94;
+function drawHumanoid(x, y, color, animFrame, isMe) {
+    const sway = Math.sin(animFrame) * 5;
+    const legSway = Math.sin(animFrame * 0.8) * 10;
     
-    if (keys['KeyW']) player.vy -= accel; if (keys['KeyS']) player.vy += accel;
-    if (keys['KeyA']) player.vx -= accel; if (keys['KeyD']) player.vx += accel;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.shadowBlur = 15; ctx.shadowColor = color;
 
-    player.vx *= friction; player.vy *= friction;
-    player.x += player.vx; player.y += player.vy;
-    player.anim += 0.1; // Animation timer
+    // Head
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(0, -50 + sway/2, 10, 0, Math.PI*2); ctx.fill();
+    
+    // Torso
+    ctx.fillStyle = color;
+    ctx.fillRect(-12, -35 + sway, 24, 35);
+    
+    // Arms
+    ctx.fillRect(-22, -30 + sway, 8, 20); // Left
+    ctx.fillRect(14, -30 + sway, 8, 20);  // Right
+    
+    // Legs (Realistic walking animation)
+    ctx.fillRect(-10, 0, 8, 20 + legSway);
+    ctx.fillRect(2, 0, 8, 20 - legSway);
+    
+    ctx.restore();
+}
 
-    set(ref(db, 'arena/players/' + myId), player);
+function update() {
+    // Advanced Physics
+    const speed = keys['ShiftLeft'] ? 12 : 6;
+    let moving = false;
+    if (keys['KeyW']) { player.y -= speed; moving = true; }
+    if (keys['KeyS']) { player.y += speed; moving = true; }
+    if (keys['KeyA']) { player.x -= speed; moving = true; }
+    if (keys['KeyD']) { player.x += speed; moving = true; }
+    
+    if (moving) player.anim += 0.2;
 
-    // DRAWING THE VOID
-    ctx.fillStyle = '#020205'; ctx.fillRect(0,0,canvas.width, canvas.height);
+    // Island/Sector Logic
+    if (player.x > 3000) {
+        document.getElementById('island-name').innerText = "SECTOR: CRIMSON RIFT";
+        document.getElementById('island-name').style.color = "#ff0000";
+    } else {
+        document.getElementById('island-name').innerText = "SECTOR: ORIGIN ISLE";
+        document.getElementById('island-name').style.color = "#ff00ff";
+    }
+
+    set(ref(db, 'players/' + myId), player);
+
+    // Render Scene
+    ctx.fillStyle = '#020205'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     ctx.save();
     ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-    // DRAW THE UNIVERSE GRID
-    ctx.strokeStyle = '#00f2ff0a';
-    for(let i=0; i<10000; i+=200) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 10000); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(10000, i); ctx.stroke();
+    // Draw Map & Islands
+    ctx.strokeStyle = '#111';
+    for(let i=-5000; i<10000; i+=500) {
+        ctx.beginPath(); ctx.moveTo(i, -5000); ctx.lineTo(i, 10000); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-5000, i); ctx.lineTo(10000, i); ctx.stroke();
     }
 
-    onValue(ref(db, 'arena/players'), (s) => world.players = s.val() || {});
-
-    Object.values(world.players).forEach(p => {
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        
-        // Dynamic Glow
-        ctx.shadowBlur = 30 + Math.sin(player.anim)*10;
-        ctx.shadowColor = '#00f2ff';
-        ctx.fillStyle = '#00f2ff';
-        
-        // Animated Character "Breathing"
-        const bounce = Math.sin(player.anim) * 5;
-        ctx.fillRect(-20, -20 + bounce, 40, 40);
-        
-        // HP Shield
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-        ctx.strokeRect(-25, -25 + bounce, 50, 50);
-        ctx.restore();
+    // Render All Humanoids
+    onValue(ref(db, 'players'), (s) => others = s.val() || {});
+    Object.values(others).forEach(p => {
+        drawHumanoid(p.x, p.y, p.color, p.anim, p.id === myId);
     });
 
     ctx.restore();
-    requestAnimationFrame(render);
+    requestAnimationFrame(update);
 }
 
-onDisconnect(ref(db, 'arena/players/' + myId)).remove();
-render();
+onDisconnect(ref(db, 'players/' + myId)).remove();
+update();
 </script>
 </body>
 </html>
