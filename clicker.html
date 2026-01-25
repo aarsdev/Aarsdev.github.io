@@ -18,6 +18,12 @@
       border: 2px solid #00ff9c;
       cursor: pointer;
       margin: 5px;
+      transition: transform 0.1s, background-color 0.1s;
+    }
+    button:active {
+      transform: scale(1.2);
+      background-color: #00ff9c;
+      color: black;
     }
   </style>
 </head>
@@ -25,16 +31,27 @@
 
 <h1>🎯 Clicker Game</h1>
 <p>Clicks: <span id="score">0</span></p>
+<p>High Score: <span id="highscore">0</span></p>
 
 <button onclick="addPoint()">CLICK ME</button>
 <button onclick="resetScore()">RESET</button>
+<br><br>
+<a href="index.html">🏠 Back to Home</a>
 
 <script>
 let score = 0;
+let highscore = localStorage.getItem('clickerHighScore') || 0;
+document.getElementById('highscore').innerText = highscore;
 
 function addPoint() {
   score++;
   document.getElementById("score").innerText = score;
+
+  if(score > highscore){
+    highscore = score;
+    document.getElementById('highscore').innerText = highscore;
+    localStorage.setItem('clickerHighScore', highscore);
+  }
 }
 
 function resetScore() {
@@ -45,5 +62,3 @@ function resetScore() {
 
 </body>
 </html>
-<br><br>
-<a href="index.html">🏠 Back to Home</a>
