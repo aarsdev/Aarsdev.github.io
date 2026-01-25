@@ -5,17 +5,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; background: #050505; color: #fff; font-family: 'Orbitron', sans-serif; overflow: hidden; touch-action: manipulation; }
-        canvas { display: block; margin: auto; border: 4px solid #00f2ff; box-shadow: 0 0 20px #00f2ff; }
-        #ui { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); z-index: 10; }
-        .btn { padding: 15px 30px; background: #ff00ff; border: none; color: #fff; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; }
-        #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; font-size: 24px; color: #00f2ff; pointer-events: none; }
+        canvas { display: block; margin: auto; border: 4px solid #00f2ff; box-shadow: 0 0 20px #00f2ff; background: #000; }
+        
+        /* UI OVERLAY */
+        #ui { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); z-index: 10; }
+        .menu-card { background: #111; padding: 40px; border: 2px solid #ff00ff; text-align: center; border-radius: 15px; box-shadow: 0 0 30px rgba(255, 0, 255, 0.3); }
+        
+        .btn { display: block; width: 200px; padding: 15px; margin: 10px auto; border: none; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; text-decoration: none; font-size: 16px; transition: 0.2s; }
+        .btn-start { background: #ff00ff; color: #fff; }
+        .btn-start:hover { background: #00f2ff; color: #000; transform: scale(1.05); }
+        .btn-hub { background: #222; color: #00f2ff; border: 1px solid #00f2ff; }
+        .btn-hub:hover { background: #00f2ff; color: #000; }
+
+        /* HUD */
+        #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; font-size: 24px; color: #00f2ff; pointer-events: none; text-shadow: 0 0 10px #00f2ff; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <h1 style="color:#00f2ff">NEON FLY</h1>
-    <button class="btn" onclick="startGame()">START MISSION</button>
+    <div class="menu-card">
+        <h1 style="color:#00f2ff; margin-bottom: 30px;">NEON FLY</h1>
+        
+        <button class="btn btn-start" onclick="startGame()">START MISSION</button>
+        
+        <a href="https://aars-account.github.io" class="btn btn-hub">GO TO HUB</a>
+    </div>
 </div>
 
 <div id="hud">
@@ -58,7 +73,7 @@ class Pipe {
         this.w = 60;
         this.gap = 160;
         this.top = Math.random() * (canvas.height / 2) + 50;
-        this.scored = false; // The Fix: Track if this specific pipe gave a point
+        this.scored = false; // Fixed: Track score per pipe
     }
     draw() {
         ctx.fillStyle = '#00f2ff';
@@ -86,6 +101,7 @@ function endGame() {
     document.getElementById('ui').style.display = 'flex';
 }
 
+// CONTROLS
 window.onkeydown = (e) => { if(e.code === 'Space') bird.vel = bird.jump; };
 canvas.onmousedown = () => bird.vel = bird.jump;
 
@@ -100,15 +116,14 @@ function loop() {
         pipes[i].update();
         pipes[i].draw();
 
-        // --- THE SCORING FIX ---
-        // If the left side of the pipe passes the bird's position
+        // THE FIXED SCORING LOGIC
         if (!pipes[i].scored && pipes[i].x < bird.x) {
             score++;
             pipes[i].scored = true;
             document.getElementById('cur-score').innerText = score;
         }
 
-        // Collision
+        // COLLISION
         if (bird.x + bird.size > pipes[i].x && bird.x < pipes[i].x + pipes[i].w) {
             if (bird.y < pipes[i].top || bird.y + bird.size > pipes[i].top + pipes[i].gap) endGame();
         }
