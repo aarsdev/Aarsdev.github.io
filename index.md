@@ -71,7 +71,7 @@
 
 <header>
   <h1>👋 Hi, I'm Aarush</h1>
-  <p>Welcome to my tech site! I'm learning <strong>web development, coding, and cool tech projects</strong>.</p>
+  <p>Welcome to my tech site! I'm doing <strong>web development, coding, and cool tech projects</strong>.</p>
 </header>
 
 <section>
