@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NEONVERSE ONLINE</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      color: #00ffff;
+      font-family: Arial;
+      overflow: hidden;
+    }
+
+    #ui {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    input {
+      background: black;
+      border: 1px solid #00ffff;
+      color: #00ffff;
+      padding: 5px;
+    }
+
+    button {
+      background: black;
+      border: 1px solid #00ffff;
+      color: #00ffff;
+      padding: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  <div>
+    Name:
+    <input id="nameInput" placeholder="Player">
+    <button onclick="joinGame()">JOIN</button>
+  </div>
+  <div id="chatBox" style="display:none;">
+    <input id="chatInput" placeholder="Type message..." onkeydown="sendChat(event)">
+  </div>
+  <br>
+  <a href="index.html" style="color:#00ffff;">🏠 Home</a>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let socket;
+let players = {};
+let myId = null;
+let keys = {};
+
+function joinGame() {
+  const name = document.getElementById("nameInput").value || "Player";
+  document.getElementById("chatBox").style.display = "block";
+
+  socket = new WebSocket("wss://YOUR-SERVER-URL");
+
+  socket.onopen = () => {
+    socket.send(JSON.stringify({ type: "join", name }));
+  };
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    players = data.players;
+    myId = data.id;
+  };
+}
+
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+function sendChat(e) {
+  if (e.key === "Enter") {
+    socket.send(JSON.stringify({
+      type: "chat",
+      message: document.getElementById("chatInput").value
+    }));
+    document.getElementById("chatInput").value = "";
+  }
+}
+
+function update() {
+  if (!socket || !myId) return;
+
+  let dx = 0, dy = 0;
+  if (keys["w"]) dy -= 3;
+  if (keys["s"]) dy += 3;
+  if (keys["a"]) dx -= 3;
+  if (keys["d"]) dx += 3;
+
+  socket.send(JSON.stringify({ type: "move", dx, dy }));
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let id in players) {
+    const p = players[id];
+    ctx.fillStyle = id === myId ? "#00ff00" : "#00ffff";
+    ctx.fillRect(p.x, p.y, 20, 20);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(p.name, p.x, p.y - 5);
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
