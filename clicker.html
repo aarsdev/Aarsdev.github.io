@@ -17,6 +17,7 @@
       color: #00ff9c;
       border: 2px solid #00ff9c;
       cursor: pointer;
+      margin: 5px;
     }
   </style>
 </head>
@@ -26,12 +27,18 @@
 <p>Clicks: <span id="score">0</span></p>
 
 <button onclick="addPoint()">CLICK ME</button>
+<button onclick="resetScore()">RESET</button>
 
 <script>
 let score = 0;
 
 function addPoint() {
   score++;
+  document.getElementById("score").innerText = score;
+}
+
+function resetScore() {
+  score = 0;
   document.getElementById("score").innerText = score;
 }
 </script>
