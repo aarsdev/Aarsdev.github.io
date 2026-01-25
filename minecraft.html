@@ -1,37 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEONVERSE | VOXEL SANDBOX</title>
+    <title>NEONVERSE | INFINITE ADVENTURE</title>
     <style>
-        body { background: #050505; color: #00f2ff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; }
-        #ui { position: fixed; top: 10; left: 10; z-index: 10; pointer-events: none; }
-        #inventory { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; background: rgba(0,0,0,0.8); padding: 10px; border: 2px solid #00f2ff; }
-        .slot { width: 40px; height: 40px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; }
-        .active { border: 2px solid #ff00ff; box-shadow: 0 0 10px #ff00ff; }
+        body { background: #020205; color: #00f2ff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; }
+        #ui { position: fixed; top: 20px; left: 20px; pointer-events: none; z-index: 10; }
+        #chat { position: fixed; bottom: 20px; left: 20px; width: 300px; background: rgba(0,0,0,0.8); border: 1px solid #00f2ff; padding: 10px; }
+        #inv { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; }
+        .slot { width: 50px; height: 50px; border: 2px solid #333; display: flex; align-items: center; justify-content: center; background: #000; cursor: pointer; pointer-events: auto; }
+        .active { border-color: #ff00ff; box-shadow: 0 0 15px #ff00ff; }
         canvas { display: block; }
     </style>
 </head>
 <body>
 
     <div id="ui">
-        <h1 style="margin:0; text-shadow: 0 0 10px #00f2ff;">NEONVERSE VOXEL</h1>
-        <p>WASD to Move | Click to Place | Right Click to Remove</p>
-        <p>CORES FOUND: <span id="cores">0</span></p>
+        <h1 style="margin:0; font-size: 40px; text-shadow: 0 0 10px #00f2ff;">NEONVERSE VOXEL</h1>
+        <p>CORES COLLECTED: <span id="score">0</span></p>
+        <p style="font-size: 12px; color: #ff00ff;">TASK: Find the Hidden Golden Cores in the deep grid.</p>
     </div>
 
-    <div id="inventory">
-        <div class="slot active" data-color="#00f2ff" onclick="selectSlot(this)">💠</div>
-        <div class="slot" data-color="#ff00ff" onclick="selectSlot(this)">🌸</div>
-        <div class="slot" data-color="#ffff00" onclick="selectSlot(this)">⭐</div>
+    <div id="chat">
+        <div id="msgs" style="height: 100px; overflow-y: auto; font-size: 12px; margin-bottom: 5px;"></div>
+        <input type="text" id="chatInput" placeholder="Press Enter to broadcast..." style="width: 90%; background: #000; color: #00f2ff; border: 1px solid #00f2ff;">
     </div>
 
-    <canvas id="world"></canvas>
+    <div id="inv">
+        <div class="slot active" data-clr="#00f2ff" onclick="sel(this)">💠</div>
+        <div class="slot" data-clr="#ff00ff" onclick="sel(this)">🌸</div>
+        <div class="slot" data-clr="#ffff00" onclick="sel(this)">🔥</div>
+    </div>
+
+    <canvas id="game"></canvas>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, onDisconnect, remove, push } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-        // USE YOUR KEYS FROM YOUR FIREBASE SCREENSHOT
+        // Your Config from image_6339d1.jpg
         const firebaseConfig = {
             apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
             authDomain: "neonverse-aars.firebaseapp.com",
@@ -45,86 +51,75 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        const canvas = document.getElementById('world');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const cvs = document.getElementById('game');
+        const ctx = cvs.getContext('2d');
+        cvs.width = window.innerWidth;
+        cvs.height = window.innerHeight;
 
-        let myId = "p_" + Math.floor(Math.random() * 9999);
-        let camX = 1000, camY = 1000;
-        let players = {}, blocks = {}, selectedColor = "#00f2ff";
-        let keys = {};
+        let myId = "explorer_" + Math.floor(Math.random() * 9999);
+        let camX = 2000, camY = 2000, score = 0, selClr = "#00f2ff";
+        let players = {}, blocks = {}, keys = {};
 
-        // 🟢 INTERACTION: Select Block Color
-        window.selectSlot = (el) => {
+        // 💠 Interaction: Building like Minecraft
+        cvs.onmousedown = (e) => {
+            const wx = Math.floor((e.clientX + camX - cvs.width/2) / 40) * 40;
+            const wy = Math.floor((e.clientY + camY - cvs.height/2) / 40) * 40;
+            const bId = `${wx}_${wy}`;
+            if (e.button === 0) set(ref(db, 'world/' + bId), { x: wx, y: wy, clr: selClr });
+            else remove(ref(db, 'world/' + bId));
+        };
+        cvs.oncontextmenu = (e) => e.preventDefault();
+        window.sel = (el) => {
             document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
-            el.classList.add('active');
-            selectedColor = el.dataset.color;
+            el.classList.add('active'); selClr = el.dataset.clr;
         };
 
-        // 🟢 INTERACTION: Place/Remove Blocks
-        canvas.onmousedown = (e) => {
-            const worldX = Math.floor((e.clientX + camX - canvas.width/2) / 40) * 40;
-            const worldY = Math.floor((e.clientY + camY - canvas.height/2) / 40) * 40;
-            const blockId = `${worldX}_${worldY}`;
-
-            if (e.button === 0) { // Left Click: Place
-                set(ref(db, 'world/blocks/' + blockId), { x: worldX, y: worldY, color: selectedColor });
-            } else if (e.button === 2) { // Right Click: Remove
-                remove(ref(db, 'world/blocks/' + blockId));
+        // 💬 Adventure Chat
+        const cin = document.getElementById('chatInput');
+        cin.onkeydown = (e) => {
+            if(e.key === 'Enter' && cin.value) {
+                push(ref(db, 'chat'), { name: myId.split('_')[1], txt: cin.value });
+                cin.value = '';
             }
         };
-        canvas.oncontextmenu = (e) => e.preventDefault();
+        onValue(ref(db, 'chat'), (s) => {
+            const m = s.val() || {};
+            document.getElementById('msgs').innerHTML = Object.values(m).slice(-5).map(v => `<div><b>${v.name}:</b> ${v.txt}</div>`).join('');
+        });
 
-        // 🟢 SYNC: Get World Data
-        onValue(ref(db, 'world/blocks'), (snap) => { blocks = snap.val() || {}; });
-        onValue(ref(db, 'players'), (snap) => { players = snap.val() || {}; });
+        // 🌍 World Sync
+        onValue(ref(db, 'world'), (s) => { blocks = s.val() || {}; });
+        onValue(ref(db, 'players'), (s) => { players = s.val() || {}; });
         onDisconnect(ref(db, 'players/' + myId)).remove();
 
-        // 🟢 LOOP: Physics & Movement
         window.onkeydown = (e) => keys[e.key.toLowerCase()] = true;
         window.onkeyup = (e) => keys[e.key.toLowerCase()] = false;
 
-        function loop() {
-            if(keys['w']) camY -= 5;
-            if(keys['s']) camY += 5;
-            if(keys['a']) camX -= 5;
-            if(keys['d']) camX += 5;
+        function play() {
+            if(keys['w']) camY -= 8; if(keys['s']) camY += 8;
+            if(keys['a']) camX -= 8; if(keys['d']) camX += 8;
 
-            set(ref(db, 'players/' + myId), { x: camX, y: camY, color: '#fff' });
+            set(ref(db, 'players/' + myId), { x: camX, y: camY, clr: '#fff' });
 
-            // Draw World
-            ctx.fillStyle = "#050505";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#020205"; ctx.fillRect(0, 0, cvs.width, cvs.height);
+            ctx.save(); ctx.translate(cvs.width/2 - camX, cvs.height/2 - camY);
 
-            ctx.save();
-            ctx.translate(canvas.width/2 - camX, canvas.height/2 - camY);
-
-            // Draw Grid lines
-            ctx.strokeStyle = "#111";
-            for(let i=0; i<4000; i+=40) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 4000); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(4000, i); ctx.stroke();
-            }
-
-            // Draw Shared Blocks (Minecraft Style)
+            // Draw Persistent World
             Object.values(blocks).forEach(b => {
-                ctx.fillStyle = b.color;
-                ctx.shadowBlur = 10; ctx.shadowColor = b.color;
+                ctx.shadowBlur = 10; ctx.shadowColor = b.clr; ctx.fillStyle = b.clr;
                 ctx.fillRect(b.x + 2, b.y + 2, 36, 36);
-                ctx.shadowBlur = 0;
             });
 
-            // Draw Other Players
+            // Draw Online Explorers
             Object.values(players).forEach(p => {
-                ctx.fillStyle = "#fff";
-                ctx.fillRect(p.x - 10, p.y - 10, 20, 20);
+                ctx.shadowBlur = 0; ctx.fillStyle = "#fff";
+                ctx.fillRect(p.x - 15, p.y - 15, 30, 30);
             });
 
             ctx.restore();
-            requestAnimationFrame(loop);
+            requestAnimationFrame(play);
         }
-        loop();
+        play();
     </script>
 </body>
 </html>
