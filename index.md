@@ -9,7 +9,7 @@ Welcome to my tech site!
 I'm learning **web development, coding, and cool tech projects**.
 
 ---
-👉 [My Games](https://github.com/Aars-account)
+👉 [My Games](https://aars-account.github.io/clicker.html)
 ---
 
 ## 🚀 What I'm Working On
