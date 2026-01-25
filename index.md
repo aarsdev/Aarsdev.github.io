@@ -1,34 +1,72 @@
----
-layout: default
-title: Home
----
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Aarush's Mini Arcade</title>
+  <style>
+    body {
+      background-color: #0d1117;
+      color: #00ff9c;
+      font-family: 'Courier New', monospace;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
 
-# 👋 Hi, I'm Aarush
+    header {
+      padding: 40px 0;
+      background: linear-gradient(90deg, #00ff9c, #00bfa5);
+      color: black;
+      font-size: 36px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px #000;
+    }
 
-Welcome to my tech site!  
-I'm learning **web development, coding, and cool tech projects**.
+    .container {
+      margin-top: 50px;
+    }
 
----
-My games👉 [Clicker](https://aars-account.github.io/clicker.html) ,  [Guess the number](https://aars-account.github.io/guess.html)
----
+    a {
+      display: inline-block;
+      padding: 25px 40px;
+      margin: 20px;
+      font-size: 24px;
+      color: #00ff9c;
+      background-color: black;
+      border: 3px solid #00ff9c;
+      text-decoration: none;
+      border-radius: 12px;
+      transition: 0.3s;
+    }
 
-## 🚀 What I'm Working On
-- 🌐 Building website
-- 🧠 Learning Python
-- 🔐 Exploring cybersecurity
-- 🎮 Making small games and tools
-- ✨ working with AI
+    a:hover {
+      background-color: #00ff9c;
+      color: black;
+      transform: scale(1.1);
+    }
 
+    footer {
+      margin-top: 100px;
+      padding: 20px;
+      font-size: 14px;
+      color: #00ff9c;
+      border-top: 1px solid #00ff9c;
+    }
+  </style>
+</head>
+<body>
 
----
+<header>🎮 Aarush's Mini Arcade</header>
 
-## 🔗 My Projects
-- 🔢  Auto clickers on python
-- 🌐 This Website
-- 🛠️ More coming soon...
+<div class="container">
+  <p>Pick a game to play:</p>
+  <a href="clicker.html">🎯 Clicker Game</a>
+  <a href="guess.html">🧠 Guess the Number</a>
+</div>
 
----
+<footer>
+  Made with ❤️ by Aarush | 2026
+</footer>
 
-## 📫 Contact
-You can find me on GitHub:  
-👉 [My GitHub](https://github.com/Aars-account)
+</body>
+</html>
+
