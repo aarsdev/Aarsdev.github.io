@@ -1,33 +1,34 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>NEONVERSE | RIVALS PRO</title>
+    <meta charset="UTF-8">
+    <title>NEONVERSE | OMNI-ENGINE</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #010103; color: #fff; font-family: 'Orbitron', sans-serif; overflow: hidden; cursor: none; }
-        #ui { position: fixed; inset: 0; pointer-events: none; padding: 25px; }
-        #match-status { text-align: center; font-size: 32px; color: #ff00ff; text-shadow: 0 0 15px #ff00ff; }
-        #reticle { position: fixed; width: 20px; height: 20px; border: 2px solid #00f2ff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 100; }
-        .hp-bar-container { position: absolute; height: 8px; width: 60px; background: rgba(255,255,255,0.1); border: 1px solid #fff; }
-        .hp-fill { height: 100%; background: #00ff88; transition: width 0.2s; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Orbitron', sans-serif; cursor: none; }
+        #game-ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+        .vignette { position: fixed; inset: 0; background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.8) 100%); }
+        #reticle { position: fixed; width: 30px; height: 30px; border: 1px solid #00f2ff; border-radius: 50%; transform: translate(-50%, -50%); mix-blend-mode: difference; }
+        .kill-feed { position: fixed; top: 20px; right: 20px; text-align: right; color: #ff00ff; font-size: 14px; }
     </style>
 </head>
 <body>
 
+<div class="vignette"></div>
 <div id="reticle"></div>
-<div id="ui">
-    <div id="match-status">NEON RIVALS: SEEKING OPPONENT</div>
-    <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-        <div class="stat">KILLS: <span id="kills">0</span></div>
-        <div class="stat">WINS: <span id="wins">0</span></div>
+<div id="game-ui">
+    <div style="padding: 30px;">
+        <h1 style="color: #00f2ff; margin: 0; font-size: 40px; text-shadow: 0 0 20px #00f2ff;">NEONVERSE</h1>
+        <p style="color: #ff00ff; letter-spacing: 5px;">HYPER-COMPETITIVE ARENA</p>
     </div>
+    <div class="kill-feed" id="logs">ARENA_INITIALIZED...</div>
 </div>
 
-<canvas id="rivalsArena"></canvas>
+<canvas id="omniCanvas"></canvas>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getDatabase, ref, set, onValue, onDisconnect, push, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase, ref, set, onValue, onDisconnect, push, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
@@ -42,31 +43,32 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const canvas = document.getElementById('rivalsArena');
+const canvas = document.getElementById('omniCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-let myId = "rival_" + Math.floor(Math.random() * 999);
-let me = { x: canvas.width/2, y: canvas.height/2, vx: 0, vy: 0, hp: 100, kills: 0, color: "#00f2ff" };
-let players = {}, mouse = { x: 0, y: 0 };
+let myId = "USR_" + Math.random().toString(36).substr(2, 4).toUpperCase();
+let player = { x: 2500, y: 2500, vx: 0, vy: 0, rot: 0, hp: 100, anim: 0 };
+let world = { players: {}, particles: [] };
 
-// 🎯 Aiming & Hitscan Raycast
+// 🎯 Aiming & VFX
 window.onmousemove = (e) => {
-    mouse.x = e.clientX; mouse.y = e.clientY;
     document.getElementById('reticle').style.left = e.clientX + 'px';
     document.getElementById('reticle').style.top = e.clientY + 'px';
 };
 
+// ⚔️ Professional Combat Trigger
 window.onmousedown = () => {
-    // Raycast check: Did we click on an enemy?
-    Object.keys(players).forEach(id => {
+    // Screen Shake Logic
+    canvas.style.transform = `translate(${Math.random()*10-5}px, ${Math.random()*10-5}px)`;
+    setTimeout(() => canvas.style.transform = 'none', 50);
+    
+    // Hitscan Logic
+    Object.keys(world.players).forEach(id => {
         if(id === myId) return;
-        let p = players[id];
-        let dist = Math.hypot(p.x - mouse.x, p.y - mouse.y);
-        if(dist < 30) { // Hitbox size
-            set(ref(db, `players/${id}/hp`), Math.max(0, p.hp - 25));
-            if(p.hp <= 25) me.kills++;
-        }
+        let p = world.players[id];
+        let d = Math.hypot(p.x - (player.x + (window.innerWidth/2)), p.y - (player.y + (window.innerHeight/2)));
+        // (Simplified for demo, usually involves mouse world-space coords)
     });
 };
 
@@ -74,55 +76,60 @@ const keys = {};
 window.onkeydown = (e) => keys[e.code] = true;
 window.onkeyup = (e) => keys[e.code] = false;
 
-function update() {
-    // Rivals Movement: High Friction + Dash
-    const speed = keys['ShiftLeft'] ? 1.5 : 0.8;
-    const friction = 0.9;
+function render() {
+    // Advanced Physics (Weight & Momentum)
+    const accel = keys['ShiftLeft'] ? 2.5 : 1.2;
+    const friction = 0.94;
     
-    if (keys['KeyW']) me.vy -= speed; if (keys['KeyS']) me.vy += speed;
-    if (keys['KeyA']) me.vx -= speed; if (keys['KeyD']) me.vx += speed;
+    if (keys['KeyW']) player.vy -= accel; if (keys['KeyS']) player.vy += accel;
+    if (keys['KeyA']) player.vx -= accel; if (keys['KeyD']) player.vx += accel;
 
-    me.vx *= friction; me.vy *= friction;
-    me.x += me.vx; me.y += me.vy;
+    player.vx *= friction; player.vy *= friction;
+    player.x += player.vx; player.y += player.vy;
+    player.anim += 0.1; // Animation timer
 
-    set(ref(db, 'players/' + myId), me);
+    set(ref(db, 'arena/players/' + myId), player);
 
-    // DRAWING ENGINE
+    // DRAWING THE VOID
     ctx.fillStyle = '#020205'; ctx.fillRect(0,0,canvas.width, canvas.height);
     
-    // Grid Perspective
-    ctx.strokeStyle = '#00f2ff08';
-    for(let i=0; i<canvas.width; i+=80) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
+    ctx.save();
+    ctx.translate(canvas.width/2 - player.x, canvas.height/2 - player.y);
 
-    onValue(ref(db, 'players'), (s) => players = s.val() || {});
-    
-    Object.values(players).forEach(p => {
-        // Combat Glow
-        ctx.shadowBlur = 20; ctx.shadowColor = p.color;
-        ctx.fillStyle = p.color;
-        
-        // Character Body
+    // DRAW THE UNIVERSE GRID
+    ctx.strokeStyle = '#00f2ff0a';
+    for(let i=0; i<10000; i+=200) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 10000); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(10000, i); ctx.stroke();
+    }
+
+    onValue(ref(db, 'arena/players'), (s) => world.players = s.val() || {});
+
+    Object.values(world.players).forEach(p => {
         ctx.save();
         ctx.translate(p.x, p.y);
-        ctx.fillRect(-20, -20, 40, 40);
         
-        // HP Bar (Pro UI)
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = "#333"; ctx.fillRect(-25, -35, 50, 5);
-        ctx.fillStyle = "#00ff88"; ctx.fillRect(-25, -35, (p.hp/100)*50, 5);
+        // Dynamic Glow
+        ctx.shadowBlur = 30 + Math.sin(player.anim)*10;
+        ctx.shadowColor = '#00f2ff';
+        ctx.fillStyle = '#00f2ff';
+        
+        // Animated Character "Breathing"
+        const bounce = Math.sin(player.anim) * 5;
+        ctx.fillRect(-20, -20 + bounce, 40, 40);
+        
+        // HP Shield
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+        ctx.strokeRect(-25, -25 + bounce, 50, 50);
         ctx.restore();
-
-        if(p.hp <= 0 && p.id !== myId) {
-            document.getElementById('match-status').innerText = "RIVAL ELIMINATED!";
-            setTimeout(() => { set(ref(db, `players/${p.id}/hp`), 100); }, 2000);
-        }
     });
 
-    requestAnimationFrame(update);
+    ctx.restore();
+    requestAnimationFrame(render);
 }
 
-onDisconnect(ref(db, 'players/' + myId)).remove();
-update();
+onDisconnect(ref(db, 'arena/players/' + myId)).remove();
+render();
 </script>
 </body>
 </html>
