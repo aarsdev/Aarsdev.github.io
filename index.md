@@ -77,10 +77,37 @@
 <section>
   <h2>My Games 👉</h2>
   <a class="game-link" href="https://aars-account.github.io/clicker.html">🎯 Clicker</a>
-  <
+  <a class="game-link" href="https://aars-account.github.io/guess.html">🧠 Guess the Number</a>
+</section>
 
+<section>
+  <h2>🚀 What I'm Working On</h2>
+  <ul>
+    <li>🌐 Building website</li>
+    <li>🧠 Learning Python</li>
+    <li>🔐 Exploring cybersecurity</li>
+    <li>🎮 Making small games and tools</li>
+    <li>✨ Working with AI</li>
+  </ul>
+</section>
+
+<section>
+  <h2>🔗 My Projects</h2>
+  <ul>
+    <li>🔢 Auto clickers in Python</li>
+    <li>🌐 This Website</li>
+    <li>🛠️ More coming soon...</li>
+  </ul>
+</section>
+
+<section>
+  <h2>📫 Contact</h2>
+  <p>You can find me on GitHub: 👉 <a href="https://github.com/Aars-account" target="_blank">My GitHub</a></p>
+</section>
+
+<footer>
+  Made by Aarush Balamurugan | Since 1/24/2026
 </footer>
 
 </body>
 </html>
-
