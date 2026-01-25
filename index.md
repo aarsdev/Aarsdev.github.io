@@ -19,7 +19,7 @@ I'm learning **web development, coding, and cool tech projects**.
 ---
 
 ## 🔗 My Projects
-- 🔢 Guess the Number Game (Python)
+- 🔢  Auto clickers on python
 - 🌐 This Website
 - 🛠️ More coming soon...
 
