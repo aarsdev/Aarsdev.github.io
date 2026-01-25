@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEONVERSE | BUILD & BATTLE</title>
+    <title>NEONVERSE | PRO PHYSICS & BUILD</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
         #ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; color: #fff; padding: 20px; }
-        .build-mode { color: #00f2ff; font-size: 20px; text-shadow: 0 0 10px #00f2ff; visibility: hidden; }
-        #crosshair { position: fixed; top: 50%; left: 50%; width: 6px; height: 6px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); }
+        .hud-box { background: rgba(0,242,255,0.1); border-left: 5px solid #00f2ff; padding: 15px; }
+        #crosshair { position: fixed; top: 50%; left: 50%; width: 8px; height: 8px; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="mode-indicator" class="build-mode">BUILD MODE: WALL [Q]</div>
-    <div style="margin-top: 10px;">LEFT CLICK: PLACE | WASD: MOVE</div>
+    <div class="hud-box">
+        <div>BUILD: 1-Wall | 2-Ramp | 3-Floor</div>
+        <div id="status" style="color:#00f2ff; font-size: 12px; margin-top:5px;">PHYSICS: ACTIVE</div>
+    </div>
 </div>
 <div id="crosshair"></div>
 
@@ -25,19 +27,9 @@
 <script type="module">
 import * as THREE from 'three';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getDatabase, ref, set, onValue, onChildAdded } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase, ref, set, onChildAdded } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-// --- FIREBASE SETUP ---
-const firebaseConfig = {
-    apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
-    authDomain: "neonverse-aars.firebaseapp.com",
-    projectId: "neonverse-aars",
-    databaseURL: "https://neonverse-aars-default-rtdb.firebaseio.com"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// --- SCENE & CAMERA ---
+// --- ENGINE SETUP ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x020205);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -45,91 +37,98 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- LIGHTING ---
-scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-const spot = new THREE.PointLight(0x00f2ff, 100);
-scene.add(spot);
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const sun = new THREE.DirectionalLight(0x00f2ff, 1);
+sun.position.set(10, 20, 10);
+scene.add(sun);
 
-// --- FLOOR ---
-const grid = new THREE.GridHelper(1000, 100, 0x444444, 0x222222);
-scene.add(grid);
+// --- COLLISION GLOBALS ---
+const collidableObjects = [];
+const floorGrid = new THREE.GridHelper(1000, 100, 0x444444, 0x222222);
+scene.add(floorGrid);
 
-// --- PLAYER ---
+// --- PLAYER SYSTEM ---
 const player = new THREE.Group();
-const body = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x00f2ff}));
+const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 1.5, 4, 8), new THREE.MeshStandardMaterial({color: 0x00f2ff}));
+body.position.y = 1.25;
 player.add(body);
 scene.add(player);
 
-// --- BUILDING SYSTEM ---
-let buildMode = false;
-const wallGeo = new THREE.BoxGeometry(5, 5, 0.5);
-const ghostMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.4 });
-const ghostWall = new THREE.Mesh(wallGeo, ghostMat);
-scene.add(ghostWall);
-ghostWall.visible = false;
+const playerVel = new THREE.Vector3();
+const raycaster = new THREE.Raycaster();
 
-// Snap function
-const snap = (val) => Math.round(val / 5) * 5;
+// --- BUILDING SYSTEM ---
+const buildMats = {
+    wall: new THREE.BoxGeometry(6, 6, 0.5),
+    ramp: new THREE.BoxGeometry(6, 0.5, 8.5),
+    floor: new THREE.BoxGeometry(6, 0.5, 6)
+};
+let currentMode = 'wall';
+
+const ghost = new THREE.Mesh(buildMats.wall, new THREE.MeshBasicMaterial({color: 0x00f2ff, transparent: true, opacity: 0.3}));
+scene.add(ghost);
 
 // --- INPUTS ---
 const keys = {};
 window.onkeydown = (e) => {
     keys[e.code] = true;
-    if(e.code === 'KeyQ') {
-        buildMode = !buildMode;
-        ghostWall.visible = buildMode;
-        document.getElementById('mode-indicator').style.visibility = buildMode ? 'visible' : 'hidden';
-    }
+    if(e.key === '1') { currentMode = 'wall'; ghost.geometry = buildMats.wall; ghost.rotation.x = 0; }
+    if(e.key === '2') { currentMode = 'ramp'; ghost.geometry = buildMats.ramp; ghost.rotation.x = -Math.PI/4; }
+    if(e.key === '3') { currentMode = 'floor'; ghost.geometry = buildMats.floor; ghost.rotation.x = 0; }
 };
 window.onkeyup = (e) => keys[e.code] = false;
 
 window.onmousedown = () => {
-    if(buildMode) {
-        const buildRef = ref(db, 'builds/' + Date.now());
-        set(buildRef, {
-            x: ghostWall.position.x,
-            y: ghostWall.position.y,
-            z: ghostWall.position.z,
-            ry: ghostWall.rotation.y
-        });
-    }
+    const build = new THREE.Mesh(ghost.geometry, new THREE.MeshStandardMaterial({color: 0x555555}));
+    build.position.copy(ghost.position);
+    build.rotation.copy(ghost.rotation);
+    scene.add(build);
+    collidableObjects.push(build); // IMPORTANT: Add to collision list
 };
-
-// --- SYNC BUILDS ---
-onChildAdded(ref(db, 'builds'), (data) => {
-    const b = data.val();
-    const wall = new THREE.Mesh(wallGeo, new THREE.MeshStandardMaterial({color: 0x555555}));
-    wall.position.set(b.x, b.y, b.z);
-    wall.rotation.y = b.ry;
-    scene.add(wall);
-});
 
 // --- GAME LOOP ---
 function animate() {
     requestAnimationFrame(animate);
 
-    // Movement
-    if (keys['KeyW']) player.translateZ(0.2);
-    if (keys['KeyS']) player.translateZ(-0.2);
+    // 1. INPUT MOVEMENT
+    const moveDir = new THREE.Vector3();
+    if (keys['KeyW']) moveDir.z += 1;
+    if (keys['KeyS']) moveDir.z -= 1;
     if (keys['KeyA']) player.rotation.y += 0.05;
     if (keys['KeyD']) player.rotation.y -= 0.05;
-
-    // Build Ghost Placement
-    if(buildMode) {
-        const forward = new THREE.Vector3(0, 0, 10).applyQuaternion(player.quaternion);
-        ghostWall.position.set(
-            snap(player.position.x + forward.x),
-            2.5,
-            snap(player.position.z + forward.z)
-        );
-        ghostWall.rotation.y = player.rotation.y;
+    
+    moveDir.applyQuaternion(player.quaternion).multiplyScalar(0.15);
+    
+    // 2. WALL COLLISION (Prevent walking through)
+    const wallRay = new THREE.Raycaster(player.position, moveDir.clone().normalize(), 0, 1.5);
+    const wallHits = wallRay.intersectObjects(collidableObjects);
+    if (wallHits.length === 0) {
+        player.position.add(moveDir);
     }
 
-    // Camera follow
-    const camPos = new THREE.Vector3(0, 8, -15).applyQuaternion(player.quaternion).add(player.position);
-    camera.position.lerp(camPos, 0.1);
+    // 3. GRAVITY & FLOOR/RAMP CLIMBING
+    raycaster.set(new THREE.Vector3(player.position.x, player.position.y + 5, player.position.z), new THREE.Vector3(0, -1, 0));
+    const floorHits = raycaster.intersectObjects([floorGrid, ...collidableObjects]);
+    
+    if (floorHits.length > 0) {
+        let groundHeight = floorHits[0].point.y;
+        // Smoothly stick to the ground/ramp
+        player.position.y = THREE.MathUtils.lerp(player.position.y, groundHeight, 0.2);
+    }
+
+    // 4. BUILD GHOST SNAPPING
+    const forward = new THREE.Vector3(0, 0, 8).applyQuaternion(player.quaternion);
+    ghost.position.set(
+        Math.round((player.position.x + forward.x)/6)*6,
+        currentMode === 'floor' ? 6 : 3, 
+        Math.round((player.position.z + forward.z)/6)*6
+    );
+    ghost.rotation.y = player.rotation.y;
+
+    // 5. CAMERA FOLLOW
+    const camOffset = new THREE.Vector3(0, 8, -12).applyQuaternion(player.quaternion).add(player.position);
+    camera.position.lerp(camOffset, 0.1);
     camera.lookAt(player.position);
-    spot.position.copy(player.position);
 
     renderer.render(scene, camera);
 }
