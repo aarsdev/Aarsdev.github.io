@@ -1,0 +1,217 @@
+<section id="emoji-frenzy">
+  <h2>🎮 Emoji Frenzy Dodge</h2>
+  <p>Use ⬅️➡️ to move. Dodge the crazy emojis and collect stars!</p>
+
+  <!-- Home button -->
+  <a href="index.html" style="
+      display:inline-block;
+      padding:10px 20px;
+      background-color:black;
+      color:#00ff9c;
+      border:2px solid #00ff9c;
+      border-radius:8px;
+      text-decoration:none;
+      font-weight:bold;
+      transition:0.2s;
+      margin-bottom:10px;
+  ">🏠 Back to Home</a>
+
+  <p>Score: <span id="frenzy-score">0</span> | High Score: <span id="frenzy-highscore">0</span></p>
+  <div id="frenzy-area"></div>
+  <p id="frenzy-gameover" style="color:red; display:none; font-size:24px;">💥 Game Over! Press R to Restart</p>
+</section>
+
+<style>
+#frenzy-area {
+  position: relative;
+  width: 600px;
+  height: 400px;
+  margin: 0 auto;
+  background-color: black;
+  border: 2px solid #00ff9c;
+  overflow: hidden;
+}
+
+.player {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  font-size:32px;
+  text-align:center;
+  line-height:40px;
+}
+
+.obstacle {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  font-size:28px;
+  text-align:center;
+  line-height:40px;
+}
+
+.powerup {
+  position: absolute;
+  width: 35px;
+  height: 35px;
+  font-size:28px;
+  text-align:center;
+  line-height:35px;
+}
+</style>
+
+<script>
+const area = document.getElementById('frenzy-area');
+const scoreEl = document.getElementById('frenzy-score');
+const highScoreEl = document.getElementById('frenzy-highscore');
+const gameOverEl = document.getElementById('frenzy-gameover');
+
+let player = {x:280, y:350, step:40};
+let score = 0;
+let speed = 2;
+let obstacles = [];
+let powerups = [];
+let gameRunning = true;
+let highScore = localStorage.getItem('frenzyHighScore') || 0;
+highScoreEl.innerText = highScore;
+
+// Create player
+const playerEl = document.createElement('div');
+playerEl.classList.add('player');
+playerEl.innerText = '🐸';
+playerEl.style.left = player.x + 'px';
+playerEl.style.top = player.y + 'px';
+area.appendChild(playerEl);
+
+// Player movement
+document.addEventListener('keydown', e=>{
+  if(!gameRunning && e.code==='KeyR'){ restartGame(); return; }
+  if(e.code==='ArrowLeft') player.x -= player.step;
+  if(e.code==='ArrowRight') player.x += player.step;
+  if(player.x<0) player.x=0;
+  if(player.x>area.clientWidth-40) player.x = area.clientWidth-40;
+  playerEl.style.left = player.x+'px';
+});
+
+// Spawn obstacles
+function spawnObstacle(){
+  if(!gameRunning) return;
+  const obs = document.createElement('div');
+  obs.classList.add('obstacle');
+  const emojis = ['💀','⚡','🔥','☠️','💣'];
+  obs.innerText = emojis[Math.floor(Math.random()*emojis.length)];
+  obs.style.left = Math.random()*(area.clientWidth-40)+'px';
+  obs.style.top = '-40px';
+  obstacles.push(obs);
+  area.appendChild(obs);
+}
+
+// Spawn powerups
+function spawnPowerup(){
+  if(!gameRunning) return;
+  const pu = document.createElement('div');
+  pu.classList.add('powerup');
+  pu.innerText = '⭐';
+  pu.style.left = Math.random()*(area.clientWidth-35)+'px';
+  pu.style.top = '-35px';
+  powerups.push(pu);
+  area.appendChild(pu);
+}
+
+// Move everything
+function moveObjects(){
+  // obstacles
+  obstacles.forEach((obs,i)=>{
+    let top = parseInt(obs.style.top);
+    top += speed;
+    obs.style.top = top + 'px';
+
+    // collision
+    if(top+40 >= player.y && player.x<parseInt(obs.style.left)+40 && player.x+40>parseInt(obs.style.left)){
+      endGame();
+      const boom = document.createElement('div');
+      boom.classList.add('obstacle');
+      boom.style.left = player.x+'px';
+      boom.style.top = player.y+'px';
+      boom.innerText = '💥';
+      area.appendChild(boom);
+      setTimeout(()=>area.removeChild(boom),500);
+    }
+
+    if(top>area.clientHeight){
+      area.removeChild(obs);
+      obstacles.splice(i,1);
+      score += 1;
+      scoreEl.innerText = score;
+      if(score%10===0) speed +=0.5;
+    }
+  });
+
+  // powerups
+  powerups.forEach((pu,i)=>{
+    let top = parseInt(pu.style.top);
+    top += speed;
+    pu.style.top = top+'px';
+
+    if(top+35 >= player.y && player.x<parseInt(pu.style.left)+35 && player.x+40>parseInt(pu.style.left)){
+      score += 5;
+      scoreEl.innerText = score;
+      area.removeChild(pu);
+      powerups.splice(i,1);
+      const sparkle = document.createElement('div');
+      sparkle.classList.add('powerup');
+      sparkle.style.left = player.x+'px';
+      sparkle.style.top = player.y+'px';
+      sparkle.innerText='✨';
+      area.appendChild(sparkle);
+      setTimeout(()=>area.removeChild(sparkle),500);
+    }
+
+    if(top>area.clientHeight){
+      area.removeChild(pu);
+      powerups.splice(i,1);
+    }
+  });
+}
+
+// Game loop
+function gameLoop(){
+  if(!gameRunning) return;
+  moveObjects();
+  requestAnimationFrame(gameLoop);
+}
+
+// Intervals
+setInterval(spawnObstacle, 700);
+setInterval(spawnPowerup, 4000);
+
+// Game over
+function endGame(){
+  gameRunning=false;
+  gameOverEl.style.display='block';
+  if(score>highScore){
+    highScore=score;
+    localStorage.setItem('frenzyHighScore',highScore);
+    highScoreEl.innerText = highScore;
+  }
+}
+
+// Restart game
+function restartGame(){
+  gameOverEl.style.display='none';
+  obstacles.forEach(o=>area.removeChild(o));
+  powerups.forEach(p=>area.removeChild(p));
+  obstacles=[];
+  powerups=[];
+  player.x=280;
+  playerEl.style.left = player.x+'px';
+  score=0;
+  speed=2;
+  scoreEl.innerText = score;
+  gameRunning=true;
+  gameLoop();
+}
+
+// Start game
+gameLoop();
+</script>
