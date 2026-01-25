@@ -82,7 +82,7 @@
   <a class="game-link" href="https://aars-account.github.io/arcade.html"> 🕹️ arcade game</a>
   <a class="game-link" href="https://aars-account.github.io/crazy.html"> crazy game</a>
   <a class="game-link" href="https://aars-account.github.io/snake.html">🐍 snake game</a>
-  <a class="game-link" href="https://aars-account.github.io/flappy.js">flappy birds game</a>
+  <a class="game-link" href="https://aars-account.github.io/flappy.html">flappy birds game</a>
 </section>
 
 <section>
