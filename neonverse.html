@@ -1,42 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NEONVERSE | Multiplayer Arena</title>
+    <title>NEONVERSE | BATTLE ARENA</title>
     <style>
         body { background-color: #050505; color: #00f2ff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
-        input#username { padding: 15px; font-size: 20px; background: #000; color: #00f2ff; border: 2px solid #00f2ff; text-align: center; outline: none; box-shadow: 0 0 15px #00f2ff; }
-        #game-canvas { background: #000; border: 4px solid #00f2ff; box-shadow: 0 0 20px #00f2ff; border-radius: 10px; margin-top: 20px; }
-        #chat-box { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #00f2ff; width: 250px; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+        input#username { padding: 15px; font-size: 20px; background: #000; color: #ff00ff; border: 2px solid #ff00ff; text-align: center; outline: none; box-shadow: 0 0 15px #ff00ff; }
+        #game-canvas { background: #000; border: 4px solid #00f2ff; box-shadow: 0 0 20px #00f2ff; border-radius: 10px; margin-top: 10px; }
+        #leaderboard { position: absolute; top: 80px; right: 30px; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #ff00ff; width: 150px; font-size: 12px; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
-        <h1 style="font-size: 50px; text-shadow: 0 0 20px #ff00ff; color: #ff00ff;">NEONVERSE</h1>
-        <p>ENTER YOUR CODENAME</p>
-        <input type="text" id="username" placeholder="PLAYER_1" maxlength="12">
-        <button onclick="joinGame()" style="margin-top: 20px; padding: 10px 30px; cursor: pointer; background: #00f2ff; font-weight: bold;">DEPLOY</button>
+        <h1 style="font-size: 60px; text-shadow: 0 0 20px #ff00ff; color: #ff00ff; margin-bottom: 10px;">NEONVERSE</h1>
+        <p style="color: #00f2ff;">COLLECT ORBS. GROW BIG. DOMINATE.</p>
+        <input type="text" id="username" placeholder="CODENAME..." maxlength="10">
+        <button onclick="joinGame()" style="margin-top: 25px; padding: 15px 40px; cursor: pointer; background: #ff00ff; color: white; border: none; font-weight: bold; box-shadow: 0 0 10px #ff00ff;">DROP IN</button>
     </div>
 
-    <h1>NEONVERSE</h1>
-    <canvas id="game-canvas" width="1000" height="600"></canvas>
-
-    <div id="chat-box">
-        <div id="messages" style="height: 100px; overflow-y: auto; font-size: 12px;"></div>
-        <input type="text" id="chat-input" placeholder="Press Enter to chat..." style="width: 90%; background: #000; color: #00f2ff; border: 1px solid #00f2ff;">
+    <h1>NEONVERSE ARENA</h1>
+    
+    <div id="leaderboard">
+        <div style="color: #ff00ff; font-weight: bold; border-bottom: 1px solid #ff00ff;">LEADERBOARD</div>
+        <div id="ranks"></div>
     </div>
+
+    <canvas id="game-canvas" width="900" height="550"></canvas>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, onDisconnect, push, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, onDisconnect, update } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD9I2tePOBy4OdbFjbAzxAPvvziqvoe0QI",
             authDomain: "neonverse-aars.firebaseapp.com",
             projectId: "neonverse-aars",
             storageBucket: "neonverse-aars.firebasestorage.app",
-            databaseURL: "https://neonverse-aars-default-rtdb.firebaseio.com", // Double check your URL in Firebase!
+            databaseURL: "https://neonverse-aars-default-rtdb.firebaseio.com",
             messagingSenderId: "612438599755",
             appId: "1:612438599755:web:43f1c0a553d56c3aa045ce"
         };
@@ -44,60 +45,102 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let myName = "Guest";
+        let myName = "Player";
         let myId = "p_" + Math.floor(Math.random() * 9999);
-        let x = 500, y = 300, power = 1;
+        let x = 450, y = 275, score = 0;
         const color = `hsl(${Math.random() * 360}, 100%, 60%)`;
 
         window.joinGame = function() {
             const input = document.getElementById('username').value;
             if (input) myName = input;
             document.getElementById('overlay').style.display = 'none';
-            updateData();
+            sync();
         }
 
-        function updateData() {
-            set(ref(db, 'players/' + myId), { name: myName, x, y, color, power });
+        function sync() {
+            set(ref(db, 'players/' + myId), { name: myName, x, y, color, score });
         }
 
         onDisconnect(ref(db, 'players/' + myId)).remove();
 
-        // Controls
-        document.addEventListener("keydown", (e) => {
-            if (document.getElementById('overlay').style.display === 'none') {
-                if (e.key === "w" || e.key === "ArrowUp") y -= 10;
-                if (e.key === "s" || e.key === "ArrowDown") y += 10;
-                if (e.key === "a" || e.key === "ArrowLeft") x -= 10;
-                if (e.key === "d" || e.key === "ArrowRight") x += 10;
-                updateData();
+        // 🟢 THE GAME MECHANIC: Spawn Orbs
+        // Only one player needs to spawn them, but for this simple version, 
+        // we'll check if any exist, if not, create them.
+        onValue(ref(db, 'orbs'), (snap) => {
+            if (!snap.exists()) {
+                let orbs = {};
+                for(let i=0; i<15; i++) {
+                    orbs['orb_'+i] = { x: Math.random()*850, y: Math.random()*500 };
+                }
+                set(ref(db, 'orbs'), orbs);
             }
         });
+
+        document.addEventListener("keydown", (e) => {
+            if (document.getElementById('overlay').style.display === 'none') {
+                const speed = 10 + (score * 0.5); // Get faster as you grow!
+                if (e.key === "w" || e.key === "ArrowUp") y -= speed;
+                if (e.key === "s" || e.key === "ArrowDown") y += speed;
+                if (e.key === "a" || e.key === "ArrowLeft") x -= speed;
+                if (e.key === "d" || e.key === "ArrowRight") x += speed;
+                
+                // Boundaries
+                x = Math.max(0, Math.min(880, x));
+                y = Math.max(0, Math.min(530, y));
+
+                checkCollisions();
+                sync();
+            }
+        });
+
+        function checkCollisions() {
+            // This is where you would check if you hit an orb or player
+            // To keep it simple for now, we'll just handle drawing.
+        }
 
         const canvas = document.getElementById("game-canvas");
         const ctx = canvas.getContext("2d");
 
-        // Game Loop
-        onValue(ref(db, 'players'), (snapshot) => {
-            const players = snapshot.val() || {};
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        onValue(ref(db), (snapshot) => {
+            const data = snapshot.val() || {};
+            const players = data.players || {};
+            const orbs = data.orbs || {};
             
-            // Draw Grid
-            ctx.strokeStyle = "#111";
-            for(let i=0; i<canvas.width; i+=50) { ctx.strokeRect(i, 0, 50, canvas.height); }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            Object.values(players).forEach(p => {
-                // Glow
+            // 1. Draw Orbs (The Food)
+            Object.keys(orbs).forEach(id => {
+                const o = orbs[id];
+                ctx.fillStyle = "#ff00ff";
+                ctx.beginPath();
+                ctx.arc(o.x, o.y, 5, 0, Math.PI*2);
+                ctx.fill();
+
+                // Simple Hit Test
+                if (Math.abs(x - o.x) < 20 && Math.abs(y - o.y) < 20) {
+                    score++;
+                    update(ref(db, 'orbs/'+id), { x: Math.random()*850, y: Math.random()*500 });
+                }
+            });
+
+            // 2. Draw Players
+            const sorted = Object.values(players).sort((a,b) => b.score - a.score);
+            const rankDiv = document.getElementById('ranks');
+            rankDiv.innerHTML = "";
+
+            sorted.forEach((p, index) => {
+                if(index < 5) rankDiv.innerHTML += `<div>${p.name}: ${p.score}</div>`;
+                
                 ctx.shadowBlur = 15; ctx.shadowColor = p.color;
                 ctx.fillStyle = p.color;
                 
-                // Player Square
-                ctx.fillRect(p.x, p.y, 20, 20);
+                // Size grows with score
+                const size = 20 + (p.score * 2);
+                ctx.fillRect(p.x, p.y, size, size);
                 
-                // Name Tag (The "Huge" part)
                 ctx.shadowBlur = 0;
                 ctx.fillStyle = "white";
-                ctx.font = "bold 12px Arial";
-                ctx.fillText(p.name, p.x - 10, p.y - 10);
+                ctx.fillText(p.name + " [" + p.score + "]", p.x, p.y - 10);
             });
         });
     </script>
