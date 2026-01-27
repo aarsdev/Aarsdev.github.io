@@ -110,6 +110,17 @@
   <h2>📫 Contact</h2>
   <p>You can find me on GitHub: 👉 <a href="https://github.com/Aars-account" target="_blank">My GitHub</a></p>
 </section>
+<section id="profile" class="profile-section">
+  <div class="profile-card">
+    <img src="profile-pic.jpg" alt="Aarush's Photo" class="profile-pic">
+    <h2>Aarush</h2>
+    <p>Hi! I'm Aarush, a web developer learning cool stuff like websites, games, and more. 🚀</p>
+    <div class="social-links">
+      <a href="https://github.com/Aars" target="_blank">GitHub</a>
+      <a href="https://twitter.com/Aars" target="_blank">Twitter</a>
+    </div>
+  </div>
+</section>
 
 <footer>
   Made by Aarush Balamurugan | Since 1/24/2026
