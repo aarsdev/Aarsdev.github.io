@@ -76,14 +76,14 @@
 
 <section>
   <h2>My Games 👉</h2>
-  <a class="game-link" href="https://aars-account.github.io/clicker.html">🎯 Clicker</a>
-  <a class="game-link" href="https://aars-account.github.io/guess.html">🧠 Guess the Number</a>
-  <a class="game-link" href="https://aars-account.github.io/runner.html">🏃‍♂️ runner game</a>
-  <a class="game-link" href="https://aars-account.github.io/arcade.html"> 🕹️ arcade game</a>
-  <a class="game-link" href="https://aars-account.github.io/crazy.html"> crazy game</a>
-  <a class="game-link" href="https://aars-account.github.io/snake.html">🐍 snake game</a>
-  <a class="game-link" href="https://aars-account.github.io/flappy.html"> flappy birds game</a>
-  <a class="game-link" href="https://aars-account.github.io/minecraft.html"> minecraft game</a>
+  <a class="game-link" href="https://https://aarsdev.github.io//clicker.html">🎯 Clicker</a>
+  <a class="game-link" href="https://https://aarsdev.github.io//guess.html">🧠 Guess the Number</a>
+  <a class="game-link" href="https://https://aarsdev.github.io//runner.html">🏃‍♂️ runner game</a>
+  <a class="game-link" href="https://https://aarsdev.github.io//arcade.html"> 🕹️ arcade game</a>
+  <a class="game-link" href="https://https://aarsdev.github.io//crazy.html"> crazy game</a>
+  <a class="game-link" href="https://https://aarsdev.github.io//snake.html">🐍 snake game</a>
+  <a class="game-link" href="https://https://aarsdev.github.io//flappy.html"> flappy birds game</a>
+  <a class="game-link" href="https://https://aarsdev.github.io//minecraft.html"> minecraft game</a>
 </section>
 
 <section>
