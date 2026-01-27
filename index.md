@@ -106,7 +106,12 @@
   </ul>
 </section>
 
+<section>
+  <h2>📫 Contact</h2>
+  <p>You can find me on GitHub: 👉 <a href="https://github.com/Aars-account" target="_blank">My GitHub</a></p>
+</section>
 
+<footer>
   Made by Aarush Balamurugan | Since 1/24/2026
 </footer>
 
