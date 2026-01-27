@@ -1,150 +1,333 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>NEON FLY | RANKED</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
-    <style>
-        body { margin: 0; background: #050505; color: #fff; font-family: 'Orbitron', sans-serif; overflow: hidden; touch-action: manipulation; }
-        canvas { display: block; margin: auto; border: 4px solid #00f2ff; box-shadow: 0 0 20px #00f2ff; background: #000; }
-        
-        #ui { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); z-index: 10; }
-        .menu-card { background: #111; padding: 40px; border: 2px solid #ff00ff; text-align: center; border-radius: 15px; box-shadow: 0 0 30px rgba(255, 0, 255, 0.3); }
-        
-        .btn { display: block; width: 220px; padding: 15px; margin: 10px auto; border: none; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; text-decoration: none; font-size: 16px; transition: 0.2s; }
-        .btn-start { background: #ff00ff; color: #fff; }
-        .btn-start:hover { background: #00f2ff; color: #000; transform: scale(1.05); }
-        .btn-hub { background: #222; color: #00f2ff; border: 1px solid #00f2ff; }
-        
-        #hud { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; font-size: 20px; color: #00f2ff; pointer-events: none; text-shadow: 0 0 10px #00f2ff; }
-        #rank-display { color: #ff00ff; font-size: 14px; margin-top: 10px; text-transform: uppercase; letter-spacing: 2px; }
-    </style>
+<meta charset="UTF-8">
+<title>NEON FLY | RANKED</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  background: #050505;
+  color: #fff;
+  font-family: 'Orbitron', sans-serif;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+canvas {
+  display: block;
+  margin: auto;
+  border: 4px solid #00f2ff;
+  box-shadow: 0 0 20px #00f2ff;
+  background: #000;
+}
+
+/* UI MENU */
+#ui {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.85);
+  z-index: 10;
+}
+
+.menu-card {
+  background: #111;
+  padding: 40px;
+  border: 2px solid #ff00ff;
+  text-align: center;
+  border-radius: 15px;
+  box-shadow: 0 0 30px rgba(255, 0, 255, 0.3);
+}
+
+.btn {
+  display: block;
+  width: 220px;
+  padding: 15px;
+  margin: 10px auto;
+  border: none;
+  cursor: pointer;
+  font-family: 'Orbitron';
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 16px;
+  transition: 0.2s;
+}
+
+.btn-start {
+  background: #ff00ff;
+  color: #fff;
+}
+
+.btn-start:hover {
+  background: #00f2ff;
+  color: #000;
+  transform: scale(1.05);
+}
+
+.btn-hub {
+  background: #222;
+  color: #00f2ff;
+  border: 1px solid #00f2ff;
+}
+
+#hud {
+  position: fixed;
+  top: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  font-size: 20px;
+  color: #00f2ff;
+  pointer-events: none;
+  text-shadow: 0 0 10px #00f2ff;
+}
+
+#rank-display {
+  color: #ff00ff;
+  font-size: 14px;
+  margin-top: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+</style>
 </head>
 <body>
 
 <div id="ui">
-    <div class="menu-card">
-        <h1 style="color:#00f2ff; margin-bottom: 5px;">NEON FLY</h1>
-        <div id="rank-display">RANK: LOADING...</div>
-        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
-        
-        <button class="btn btn-start" onclick="startGame()">START MISSION</button>
-        <a href="https://aars-account.github.io" class="btn btn-hub">GO TO HUB</a>
-    </div>
+  <div class="menu-card">
+    <h1 style="color:#00f2ff; margin-bottom: 5px;">NEON FLY</h1>
+    <div id="rank-display">RANK: LOADING...</div>
+    <hr style="border:0;border-top:1px solid #333;margin:20px 0;">
+
+    <button class="btn btn-start" onclick="startGame()">START MISSION</button>
+    <a href="https://aars-account.github.io" class="btn btn-hub">GO TO HUB</a>
+  </div>
 </div>
 
 <div id="hud">
-    <div>KM: <span id="cur-score">0</span></div>
-    <div>BEST: <span id="best-score">0</span></div>
+  <div>KM: <span id="cur-score">0</span></div>
+  <div>BEST: <span id="best-score">0</span></div>
 </div>
+
 <canvas id="gameCanvas"></canvas>
 
 <script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = 400; canvas.height = 600;
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 400;
+canvas.height = 600;
 
 let active = false;
 let score = 0;
-let best = localStorage.getItem('neonFlyBest') || 0;
+let best = localStorage.getItem("neonFlyBest") || 0;
+let frame = 0;
+let speed = 3.5;
 
-// --- RANK LOGIC ---
+// ---------------- SOUND FX ----------------
+const sfx = {
+  jump: new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_3c9f1b0d2f.mp3"),
+  score: new Audio("https://cdn.pixabay.com/audio/2022/03/10/audio_39b19ed6c8.mp3"),
+  death: new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_8c3c17d0d3.mp3")
+};
+
+// ---------------- RANK SYSTEM ----------------
 function getRank(s) {
-    if (s >= 100) return "🌌 NEON LEGEND";
-    if (s >= 50)  return "🏆 ELITE PILOT";
-    if (s >= 25)  return "⚡ ACE";
-    if (s >= 10)  return "🛡️ GUARDIAN";
-    return "🌑 ROOKIE";
+  if (s >= 100) return "🌌 NEON LEGEND";
+  if (s >= 50) return "🏆 ELITE PILOT";
+  if (s >= 25) return "⚡ ACE";
+  if (s >= 10) return "🛡️ GUARDIAN";
+  return "🌑 ROOKIE";
 }
 
 function updateUI() {
-    document.getElementById('best-score').innerText = best;
-    document.getElementById('rank-display').innerText = "RANK: " + getRank(best);
+  document.getElementById("best-score").innerText = best;
+  document.getElementById("rank-display").innerText = "RANK: " + getRank(best);
 }
 updateUI();
 
-let pipes = [];
-let frame = 0;
+// ---------------- PARTICLES ----------------
+let particles = [];
 
-const bird = {
-    x: 50, y: 300, vel: 0, grav: 0.6, jump: -9, size: 25,
-    update() {
-        this.vel += this.grav;
-        this.y += this.vel;
-        if (this.y + this.size > canvas.height || this.y < 0) endGame();
-    },
-    draw() {
-        ctx.fillStyle = '#ff00ff';
-        ctx.shadowBlur = 15; ctx.shadowColor = '#ff00ff';
-        ctx.fillRect(this.x, this.y, this.size, this.size);
-        ctx.shadowBlur = 0;
-    }
-};
-
-class Pipe {
-    constructor() {
-        this.x = canvas.width;
-        this.w = 60;
-        this.gap = 160;
-        this.top = Math.random() * (canvas.height / 2) + 50;
-        this.scored = false;
-    }
-    draw() {
-        ctx.fillStyle = '#00f2ff';
-        ctx.fillRect(this.x, 0, this.w, this.top);
-        ctx.fillRect(this.x, this.top + this.gap, this.w, canvas.height);
-    }
-    update() { this.x -= 3.5; }
+function spawnParticle(x, y) {
+  particles.push({
+    x,
+    y,
+    vx: Math.random() * -2,
+    vy: (Math.random() - 0.5) * 2,
+    life: 20
+  });
 }
 
+// ---------------- BIRD ----------------
+const bird = {
+  x: 50,
+  y: 300,
+  vel: 0,
+  grav: 0.6,
+  jump: -9,
+  size: 25,
+
+  update() {
+    this.vel += this.grav;
+    this.y += this.vel;
+
+    spawnParticle(this.x, this.y + this.size / 2);
+
+    if (this.y + this.size > canvas.height || this.y < 0) {
+      endGame();
+    }
+  },
+
+  draw() {
+    ctx.fillStyle = "#ff00ff";
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#ff00ff";
+    ctx.fillRect(this.x, this.y, this.size, this.size);
+    ctx.shadowBlur = 0;
+  }
+};
+
+// ---------------- PIPES ----------------
+let pipes = [];
+
+class Pipe {
+  constructor() {
+    this.x = canvas.width;
+    this.w = 60;
+    this.gap = 160;
+    this.top = Math.random() * (canvas.height / 2) + 50;
+    this.scored = false;
+  }
+
+  update() {
+    this.x -= speed;
+  }
+
+  draw() {
+    ctx.fillStyle = "#00f2ff";
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "#00f2ff";
+    ctx.fillRect(this.x, 0, this.w, this.top);
+    ctx.fillRect(this.x, this.top + this.gap, this.w, canvas.height);
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ---------------- GAME CONTROL ----------------
 function startGame() {
-    document.getElementById('ui').style.display = 'none';
-    bird.y = 300; bird.vel = 0; pipes = []; score = 0; frame = 0;
-    document.getElementById('cur-score').innerText = 0;
-    active = true;
-    loop();
+  document.getElementById("ui").style.display = "none";
+
+  bird.y = 300;
+  bird.vel = 0;
+  pipes = [];
+  particles = [];
+  score = 0;
+  frame = 0;
+  speed = 3.5;
+
+  document.getElementById("cur-score").innerText = 0;
+
+  active = true;
+  loop();
 }
 
 function endGame() {
-    active = false;
-    if (score > best) {
-        best = score;
-        localStorage.setItem('neonFlyBest', best);
-    }
-    updateUI();
-    document.getElementById('ui').style.display = 'flex';
+  if (!active) return;
+
+  active = false;
+  sfx.death.play();
+
+  if (score > best) {
+    best = score;
+    localStorage.setItem("neonFlyBest", best);
+  }
+
+  updateUI();
+  document.getElementById("ui").style.display = "flex";
 }
 
-window.onkeydown = (e) => { if(e.code === 'Space') bird.vel = bird.jump; };
-canvas.onmousedown = () => bird.vel = bird.jump;
+// ---------------- INPUT ----------------
+window.onkeydown = (e) => {
+  if (e.code === "Space") {
+    bird.vel = bird.jump;
+    sfx.jump.play();
+  }
+};
 
+canvas.onmousedown = () => {
+  bird.vel = bird.jump;
+  sfx.jump.play();
+};
+
+// ---------------- GAME LOOP ----------------
 function loop() {
-    if (!active) return;
-    ctx.fillStyle = '#050505';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (!active) return;
 
-    if (frame % 90 === 0) pipes.push(new Pipe());
+  ctx.fillStyle = "#050505";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    for (let i = pipes.length - 1; i >= 0; i--) {
-        pipes[i].update();
-        pipes[i].draw();
+  speed = 3.5 + score * 0.05;
 
-        if (!pipes[i].scored && pipes[i].x < bird.x) {
-            score++;
-            pipes[i].scored = true;
-            document.getElementById('cur-score').innerText = score;
-        }
+  if (frame % 90 === 0) {
+    pipes.push(new Pipe());
+  }
 
-        if (bird.x + bird.size > pipes[i].x && bird.x < pipes[i].x + pipes[i].w) {
-            if (bird.y < pipes[i].top || bird.y + bird.size > pipes[i].top + pipes[i].gap) endGame();
-        }
+  // Draw Pipes
+  for (let i = pipes.length - 1; i >= 0; i--) {
+    let p = pipes[i];
+    p.update();
+    p.draw();
 
-        if (pipes[i].x < -60) pipes.splice(i, 1);
+    if (!p.scored && p.x + p.w < bird.x) {
+      score++;
+      p.scored = true;
+      document.getElementById("cur-score").innerText = score;
+      sfx.score.play();
     }
 
-    bird.update();
-    bird.draw();
-    frame++;
-    requestAnimationFrame(loop);
+    if (
+      bird.x + bird.size > p.x &&
+      bird.x < p.x + p.w
+    ) {
+      if (
+        bird.y < p.top ||
+        bird.y + bird.size > p.top + p.gap
+      ) {
+        endGame();
+      }
+    }
+
+    if (p.x < -p.w) {
+      pipes.splice(i, 1);
+    }
+  }
+
+  // Draw Particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    let part = particles[i];
+    part.x += part.vx;
+    part.y += part.vy;
+    part.life--;
+
+    ctx.fillStyle = "#ff00ff";
+    ctx.fillRect(part.x, part.y, 4, 4);
+
+    if (part.life <= 0) {
+      particles.splice(i, 1);
+    }
+  }
+
+  bird.update();
+  bird.draw();
+
+  frame++;
+  requestAnimationFrame(loop);
 }
 </script>
 </body>
