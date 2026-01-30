@@ -108,7 +108,7 @@
 
 <section>
   <h2>📫 Contact</h2>
-  <p>You can find me on GitHub: 👉 <a href="https://github.com/Aars-account" target="_blank">My GitHub</a></p>
+  <p>You can find me on GitHub: 👉 <a href="https://github.com/Aarsdev" target="_blank">My GitHub</a></p>
 </section>
 
 <footer>
