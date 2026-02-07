@@ -112,15 +112,29 @@ const dog = {
     ctx.fillStyle = "#8b5a2b"; // brown dog
 
     // body
-    ctx.fillRect(-25, -10, 50, 20);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 28, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+
     // head
-    ctx.fillRect(20, -20, 22, 22);
+    ctx.beginPath();
+    ctx.ellipse(26, -6, 12, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ear
+    ctx.beginPath();
+    ctx.ellipse(30, -18, 6, 10, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
     // legs
-    ctx.fillRect(-20, 10, 8, 18);
-    ctx.fillRect(-5, 10, 8, 18);
-    ctx.fillRect(10, 10, 8, 18);
+    ctx.fillRect(-18, 10, 6, 16);
+    ctx.fillRect(-2, 10, 6, 16);
+    ctx.fillRect(12, 10, 6, 16);
+
     // tail
-    ctx.fillRect(-35, -5, 10, 6);
+    ctx.beginPath();
+    ctx.ellipse(-30, -2, 10, 4, -0.4, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
 
@@ -131,49 +145,68 @@ const dog = {
   }
 };
 
-// 🧍 ODYSSEUS
+// 🧍 ODYSSEUS (WARRIOR)
 const odysseus = {
   name: "Odysseus",
   x: canvas.width - 120,
   y: 210,
 
   draw() {
+    ctx.save();
     ctx.strokeStyle = "#00f2ff";
-    ctx.lineWidth = 5;
+    ctx.fillStyle = "#00f2ff";
+    ctx.lineWidth = 4;
     ctx.shadowBlur = 25;
     ctx.shadowColor = "#00f2ff";
 
-    // head
+    // helmet
     ctx.beginPath();
-    ctx.arc(this.x, this.y, 18, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, 18, Math.PI, 0);
     ctx.stroke();
 
-    // body
+    // helmet crest
     ctx.beginPath();
-    ctx.moveTo(this.x, this.y + 18);
-    ctx.lineTo(this.x, this.y + 90);
+    ctx.moveTo(this.x, this.y - 18);
+    ctx.lineTo(this.x, this.y - 35);
+    ctx.stroke();
+
+    // body armor
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y);
+    ctx.lineTo(this.x, this.y + 70);
     ctx.stroke();
 
     // arms
     ctx.beginPath();
-    ctx.moveTo(this.x - 35, this.y + 45);
-    ctx.lineTo(this.x + 35, this.y + 45);
+    ctx.moveTo(this.x - 30, this.y + 30);
+    ctx.lineTo(this.x + 30, this.y + 30);
+    ctx.stroke();
+
+    // sword
+    ctx.beginPath();
+    ctx.moveTo(this.x + 30, this.y + 20);
+    ctx.lineTo(this.x + 55, this.y - 10);
+    ctx.stroke();
+
+    // shield
+    ctx.beginPath();
+    ctx.arc(this.x - 40, this.y + 40, 18, 0, Math.PI * 2);
     ctx.stroke();
 
     // legs
     ctx.beginPath();
-    ctx.moveTo(this.x, this.y + 90);
-    ctx.lineTo(this.x - 25, this.y + 140);
-    ctx.moveTo(this.x, this.y + 90);
-    ctx.lineTo(this.x + 25, this.y + 140);
+    ctx.moveTo(this.x, this.y + 70);
+    ctx.lineTo(this.x - 20, this.y + 120);
+    ctx.moveTo(this.x, this.y + 70);
+    ctx.lineTo(this.x + 20, this.y + 120);
     ctx.stroke();
 
-    ctx.shadowBlur = 0;
+    ctx.restore();
 
     // name
     ctx.fillStyle = "#00f2ff";
     ctx.font = "16px Orbitron";
-    ctx.fillText("ODYSSEUS", this.x - 45, this.y - 30);
+    ctx.fillText("ODYSSEUS", this.x - 45, this.y - 40);
   }
 };
 
@@ -263,4 +296,3 @@ function loop() {
 </script>
 </body>
 </html>
-
