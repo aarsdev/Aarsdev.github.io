@@ -184,7 +184,7 @@ const dog = {
   }
 };
 
-// 🧍 ODYSSEUS
+// 🧍 ODYSSEUS (GOLDEN)
 const odysseus = {
   name: "Odysseus",
   x: canvas.width - 120,
@@ -192,11 +192,11 @@ const odysseus = {
 
   draw() {
     ctx.save();
-    ctx.strokeStyle = "#00f2ff";
-    ctx.fillStyle = "#00f2ff";
+    ctx.strokeStyle = "#FFD700"; // golden
+    ctx.fillStyle = "#FFD700";   // golden
     ctx.lineWidth = 4;
     ctx.shadowBlur = 25;
-    ctx.shadowColor = "#00f2ff";
+    ctx.shadowColor = "#FFAA00"; // golden glow
 
     // helmet
     ctx.beginPath();
@@ -243,7 +243,7 @@ const odysseus = {
     ctx.restore();
 
     // name
-    ctx.fillStyle = "#00f2ff";
+    ctx.fillStyle = "#FFD700"; // golden name
     ctx.font = "16px Orbitron";
     ctx.fillText("ODYSSEUS", this.x - 45, this.y - 40);
   }
