@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -89,7 +88,7 @@ let score = 0;
 let frame = 0;
 let speed = 4;
 
-// 🐕 ARGUS (REALISTIC DOG)
+// 🐕 ARGUS (UPGRADED DOG)
 const dog = {
   name: "Argus",
   x: 120,
@@ -110,53 +109,91 @@ const dog = {
     ctx.save();
     ctx.translate(this.x, this.y);
 
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = "#a86b32";
-    ctx.fillStyle = "#8b5a2b"; // brown dog
+    // Shadow for depth
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = "rgba(168,107,50,0.7)";
 
-    // body
+    // Body gradient
+    let bodyGrad = ctx.createLinearGradient(-30, -10, 30, 10);
+    bodyGrad.addColorStop(0, "#a67850"); // lighter brown
+    bodyGrad.addColorStop(1, "#5c3a1a"); // darker brown
+    ctx.fillStyle = bodyGrad;
+
+    // Body
     ctx.beginPath();
-    ctx.ellipse(0, 0, 30, 14, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 32, 16, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // head
+    // Head
     ctx.beginPath();
-    ctx.ellipse(28, -4, 12, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(28, -4, 14, 12, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // snout
+    // Snout
     ctx.beginPath();
-    ctx.ellipse(36, -4, 6, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(38, -4, 6, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // ears
+    // Nose
     ctx.beginPath();
-    ctx.ellipse(28, -14, 5, 8, 0.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(20, -14, 5, 8, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = "#3a1f0b";
+    ctx.arc(42, -4, 2, 0, Math.PI * 2);
     ctx.fill();
 
-    // legs
-    ctx.fillRect(-20, 10, 6, 18);
-    ctx.fillRect(-5, 10, 6, 18);
-    ctx.fillRect(10, 10, 6, 18);
+    // Eye
+    ctx.beginPath();
+    ctx.fillStyle = "#000";
+    ctx.arc(32, -6, 2, 0, Math.PI * 2);
+    ctx.fill();
 
-    // tail
+    // Ears
+    ctx.fillStyle = "#8b5a2b";
+    ctx.save();
+    ctx.translate(28, -14);
+    ctx.rotate(0.3);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 6, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(20, -14);
+    ctx.rotate(-0.3);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 6, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Legs with paws
+    ctx.fillStyle = "#8b5a2b";
+    let legs = [-20, -5, 10];
+    for (let lx of legs) {
+      ctx.beginPath();
+      ctx.fillRect(lx, 10, 6, 18);
+      ctx.beginPath();
+      ctx.ellipse(lx + 3, 30, 4, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Tail
     ctx.save();
     ctx.translate(-30, -2);
-    ctx.rotate(this.tailAngle);
+    ctx.rotate(Math.sin(this.tailAngle) * 0.5);
     ctx.beginPath();
-    ctx.ellipse(0, 0, 12, 5, -0.4, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 14, 5, -0.4, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
     ctx.restore();
 
-    // name
-    ctx.fillStyle = "#d2a679";
-    ctx.font = "14px Orbitron";
-    ctx.fillText("ARGUS", this.x - 22, this.y - 30);
+    // Name with glow
+    ctx.save();
+    ctx.fillStyle = "#ffd27f";
+    ctx.shadowColor = "#ffb84d";
+    ctx.shadowBlur = 8;
+    ctx.font = "bold 16px Orbitron";
+    ctx.fillText("ARGUS", this.x - 26, this.y - 32);
+    ctx.restore();
   }
 };
 
