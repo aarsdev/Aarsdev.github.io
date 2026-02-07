@@ -88,7 +88,7 @@ let score = 0;
 let frame = 0;
 let speed = 4;
 
-// 🐕 ARGUS (SLIM REALISTIC DOG)
+// 🐕 ARGUS (SLIM DOG, HEAD CONNECTED)
 const dog = {
   name: "Argus",
   x: 120,
@@ -101,7 +101,7 @@ const dog = {
   update() {
     this.vy += this.gravity;
     this.y += this.vy;
-    this.tailAngle = Math.sin(frame * 0.2) * 0.5; // wag tail
+    this.tailAngle = Math.sin(frame * 0.2) * 0.5;
     if (this.y < 40 || this.y > canvas.height - 60) lose();
   },
 
@@ -119,39 +119,39 @@ const dog = {
     ctx.ellipse(0, 0, 32, 16, -0.1, 0, Math.PI * 2);
     ctx.fill();
 
-    // HEAD
+    // HEAD (connected)
     ctx.beginPath();
-    ctx.ellipse(50, -10, 13, 11, 0, 0, Math.PI * 2);
+    ctx.ellipse(40, -10, 13, 11, 0, 0, Math.PI * 2); // moved closer
     ctx.fill();
 
     // SNOUT
     ctx.fillStyle = "#a67c52";
     ctx.beginPath();
-    ctx.ellipse(63, -8, 7, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(53, -8, 7, 4, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // NOSE
     ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.arc(68, -8, 2.5, 0, Math.PI * 2);
+    ctx.arc(58, -8, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
     // EYES
     ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.arc(55, -13, 2.5, 0, Math.PI * 2);
+    ctx.arc(45, -13, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
     // EARS
     ctx.fillStyle = "#5c3a1a";
     ctx.beginPath();
-    ctx.ellipse(48, -22, 4, 9, -0.3, 0, Math.PI * 2);
+    ctx.ellipse(38, -22, 4, 9, -0.3, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(58, -22, 4, 9, 0.3, 0, Math.PI * 2);
+    ctx.ellipse(48, -22, 4, 9, 0.3, 0, Math.PI * 2);
     ctx.fill();
 
-    // LEGS with paws (longer for slimmer look)
+    // LEGS with paws
     ctx.fillStyle = "#8b5a2b";
     let legOffsets = [-25, -10, 15, 30];
     for (let i = 0; i < 4; i++) {
@@ -184,7 +184,7 @@ const dog = {
   }
 };
 
-// 🧍 ODYSSEUS (WARRIOR)
+// 🧍 ODYSSEUS
 const odysseus = {
   name: "Odysseus",
   x: canvas.width - 120,
@@ -249,7 +249,7 @@ const odysseus = {
   }
 };
 
-// 🚧 OBSTACLES
+// OBSTACLES
 let obstacles = [];
 
 class Obstacle {
@@ -270,7 +270,7 @@ class Obstacle {
   }
 }
 
-// 🎮 GAME CONTROL
+// GAME CONTROL
 function start() {
   document.getElementById("ui").style.display = "none";
   dog.y = 260;
@@ -335,4 +335,3 @@ function loop() {
 </script>
 </body>
 </html>
-
