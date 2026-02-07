@@ -76,6 +76,7 @@
 
 <section>
   <h2>My Games 👉</h2>
+  <a class="game-link" href="https://aarsdev.github.io//argus.html">🐕 Argus trying to reach Odysseus</a>
   <a class="game-link" href="https://aarsdev.github.io//clicker.html">🎯 Clicker</a>
   <a class="game-link" href="https://aarsdev.github.io//guess.html">🧠 Guess the Number</a>
   <a class="game-link" href="https://aarsdev.github.io//runner.html">🏃‍♂️ runner game</a>
