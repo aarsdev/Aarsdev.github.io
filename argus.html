@@ -121,7 +121,7 @@ const dog = {
 
     // HEAD (connected)
     ctx.beginPath();
-    ctx.ellipse(40, -10, 13, 11, 0, 0, Math.PI * 2); // moved closer
+    ctx.ellipse(40, -10, 13, 11, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // SNOUT
@@ -249,14 +249,14 @@ const odysseus = {
   }
 };
 
-// OBSTACLES
+// OBSTACLES (bigger gap)
 let obstacles = [];
 
 class Obstacle {
   constructor() {
     this.x = canvas.width;
     this.width = 70;
-    this.gap = 170;
+    this.gap = 220; // bigger gap for easier gameplay
     this.top = Math.random() * 200 + 60;
   }
   update() { this.x -= speed; }
