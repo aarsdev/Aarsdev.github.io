@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NEON RUN | ODYSSEUS</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  background: #050505;
+  color: #fff;
+  font-family: 'Orbitron', sans-serif;
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+  margin: auto;
+  border: 4px solid #00f2ff;
+  box-shadow: 0 0 20px #00f2ff;
+  background: #000;
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.85);
+  z-index: 10;
+}
+
+.menu-card {
+  background: #111;
+  padding: 40px;
+  border: 2px solid #ff00ff;
+  text-align: center;
+  border-radius: 15px;
+}
+
+.btn {
+  width: 220px;
+  padding: 15px;
+  margin: 10px auto;
+  border: none;
+  cursor: pointer;
+  font-family: 'Orbitron';
+  font-weight: bold;
+}
+
+.btn-start {
+  background: #ff00ff;
+  color: #fff;
+}
+
+#hud {
+  position: fixed;
+  top: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  color: #00f2ff;
+}
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+  <div class="menu-card">
+    <h1 style="color:#00f2ff;">NEON RUN</h1>
+    <button class="btn btn-start" onclick="startGame()">START</button>
+  </div>
+</div>
+
+<div id="hud">
+  <div>DISTANCE: <span id="score">0</span></div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 400;
+canvas.height = 600;
+
+let active = false;
+let score = 0;
+let frame = 0;
+
+// 🐕 DOG
+const dog = {
+  x: 60,
+  y: 300,
+  size: 30,
+  vel: 0,
+  grav: 0.6,
+  jump: -9,
+
+  update() {
+    this.vel += this.grav;
+    this.y += this.vel;
+
+    if (this.y < 0 || this.y + this.size > canvas.height) {
+      endGame("You fell!");
+    }
+  },
+
+  draw() {
+    ctx.fillStyle = "#ff00ff";
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#ff00ff";
+
+    // body
+    ctx.fillRect(this.x, this.y, this.size, this.size / 2);
+    // head
+    ctx.fillRect(this.x + this.size - 10, this.y - 10, 15, 15);
+
+    ctx.shadowBlur = 0;
+  }
+};
+
+// 🧍 ODYSSEUS
+const odysseus = {
+  x: canvas.width - 60,
+  y: 260,
+
+  draw() {
+    ctx.strokeStyle = "#00f2ff";
+    ctx.lineWidth = 4;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#00f2ff";
+
+    // head
+    ctx.beginPath();
+    ctx.arc(this.x, this.y - 20, 12, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // body
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y - 8);
+    ctx.lineTo(this.x, this.y + 40);
+    ctx.stroke();
+
+    // legs
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y + 40);
+    ctx.lineTo(this.x - 15, this.y + 70);
+    ctx.moveTo(this.x, this.y + 40);
+    ctx.lineTo(this.x + 15, this.y + 70);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+  }
+};
+
+// 🎮 GAME CONTROL
+function startGame() {
+  document.getElementById("ui").style.display = "none";
+  dog.y = 300;
+  dog.vel = 0;
+  score = 0;
+  frame = 0;
+  active = true;
+  loop();
+}
+
+function endGame(msg) {
+  active = false;
+  alert(msg);
+  document.getElementById("ui").style.display = "flex";
+}
+
+// ⌨️ INPUT
+window.onkeydown = e => {
+  if (e.code === "Space") dog.vel = dog.jump;
+};
+canvas.onmousedown = () => dog.vel = dog.jump;
+
+// 🔁 LOOP
+function loop() {
+  if (!active) return;
+
+  ctx.fillStyle = "#050505";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  dog.update();
+  dog.draw();
+  odysseus.draw();
+
+  // WIN CONDITION
+  if (dog.x + dog.size >= odysseus.x - 10) {
+    endGame("🏆 You reached Odysseus!");
+    return;
+  }
+
+  frame++;
+  score++;
+  document.getElementById("score").innerText = score;
+
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
+
