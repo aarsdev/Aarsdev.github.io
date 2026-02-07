@@ -39,7 +39,6 @@ canvas {
   border-radius: 20px;
   border: 2px solid #ff00ff;
   text-align: center;
-  box-shadow: 0 0 40px rgba(255,0,255,0.4);
 }
 
 button {
@@ -50,15 +49,13 @@ button {
   cursor: pointer;
   background: #ff00ff;
   color: #fff;
-  margin-top: 20px;
 }
 
 #hud {
   position: fixed;
   top: 15px;
   width: 100%;
-  display: flex;
-  justify-content: center;
+  text-align: center;
   color: #00f2ff;
   font-size: 20px;
 }
@@ -93,6 +90,7 @@ let speed = 4;
 
 // 🐕 ARGUS (DOG)
 const dog = {
+  name: "Argus",
   x: 120,
   y: 260,
   vy: 0,
@@ -102,7 +100,6 @@ const dog = {
   update() {
     this.vy += this.gravity;
     this.y += this.vy;
-
     if (this.y < 40 || this.y > canvas.height - 60) lose();
   },
 
@@ -111,8 +108,8 @@ const dog = {
     ctx.translate(this.x, this.y);
 
     ctx.shadowBlur = 20;
-    ctx.shadowColor = "#ff00ff";
-    ctx.fillStyle = "#ff00ff";
+    ctx.shadowColor = "#a86b32";
+    ctx.fillStyle = "#8b5a2b"; // brown dog
 
     // body
     ctx.fillRect(-25, -10, 50, 20);
@@ -126,11 +123,17 @@ const dog = {
     ctx.fillRect(-35, -5, 10, 6);
 
     ctx.restore();
+
+    // name
+    ctx.fillStyle = "#d2a679";
+    ctx.font = "14px Orbitron";
+    ctx.fillText("ARGUS", this.x - 22, this.y - 30);
   }
 };
 
 // 🧍 ODYSSEUS
 const odysseus = {
+  name: "Odysseus",
   x: canvas.width - 120,
   y: 210,
 
@@ -166,6 +169,11 @@ const odysseus = {
     ctx.stroke();
 
     ctx.shadowBlur = 0;
+
+    // name
+    ctx.fillStyle = "#00f2ff";
+    ctx.font = "16px Orbitron";
+    ctx.fillText("ODYSSEUS", this.x - 45, this.y - 30);
   }
 };
 
@@ -179,24 +187,18 @@ class Obstacle {
     this.gap = 170;
     this.top = Math.random() * 200 + 60;
   }
-
-  update() {
-    this.x -= speed;
-  }
-
+  update() { this.x -= speed; }
   draw() {
     ctx.fillStyle = "#00f2ff";
     ctx.shadowBlur = 15;
     ctx.shadowColor = "#00f2ff";
-
     ctx.fillRect(this.x, 0, this.width, this.top);
     ctx.fillRect(this.x, this.top + this.gap, this.width, canvas.height);
-
     ctx.shadowBlur = 0;
   }
 }
 
-// 🎮 GAME
+// 🎮 GAME CONTROL
 function start() {
   document.getElementById("ui").style.display = "none";
   dog.y = 260;
@@ -237,7 +239,6 @@ function loop() {
     o.update();
     o.draw();
 
-    // collision
     if (
       dog.x + 30 > o.x &&
       dog.x - 30 < o.x + o.width &&
@@ -262,3 +263,4 @@ function loop() {
 </script>
 </body>
 </html>
+
