@@ -88,7 +88,7 @@ let score = 0;
 let frame = 0;
 let speed = 4;
 
-// 🐕 ARGUS (REALISTIC DOG)
+// 🐕 ARGUS (SLIM REALISTIC DOG)
 const dog = {
   name: "Argus",
   x: 120,
@@ -113,52 +113,52 @@ const dog = {
     ctx.shadowBlur = 10;
     ctx.shadowColor = "rgba(0,0,0,0.3)";
 
-    // BODY
+    // BODY (slimmer)
     ctx.fillStyle = "#8b5a2b";
     ctx.beginPath();
-    ctx.ellipse(0, 0, 40, 20, -0.1, 0, Math.PI * 2); // slightly tilted oval
+    ctx.ellipse(0, 0, 32, 16, -0.1, 0, Math.PI * 2);
     ctx.fill();
 
     // HEAD
     ctx.beginPath();
-    ctx.ellipse(50, -10, 15, 12, 0, 0, Math.PI * 2);
+    ctx.ellipse(50, -10, 13, 11, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // SNOUT
     ctx.fillStyle = "#a67c52";
     ctx.beginPath();
-    ctx.ellipse(63, -8, 8, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(63, -8, 7, 4, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // NOSE
     ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.arc(68, -8, 3, 0, Math.PI * 2);
+    ctx.arc(68, -8, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
     // EYES
     ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.arc(55, -13, 3, 0, Math.PI * 2);
+    ctx.arc(55, -13, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
     // EARS
     ctx.fillStyle = "#5c3a1a";
     ctx.beginPath();
-    ctx.ellipse(48, -22, 5, 10, -0.3, 0, Math.PI * 2);
+    ctx.ellipse(48, -22, 4, 9, -0.3, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(58, -22, 5, 10, 0.3, 0, Math.PI * 2);
+    ctx.ellipse(58, -22, 4, 9, 0.3, 0, Math.PI * 2);
     ctx.fill();
 
-    // LEGS with paws
+    // LEGS with paws (longer for slimmer look)
     ctx.fillStyle = "#8b5a2b";
-    let legOffsets = [-25, -10, 15, 30]; // front-left, front-right, back-left, back-right
+    let legOffsets = [-25, -10, 15, 30];
     for (let i = 0; i < 4; i++) {
       ctx.beginPath();
-      ctx.fillRect(legOffsets[i], 15, 8, 25);
+      ctx.fillRect(legOffsets[i], 15, 7, 28);
       ctx.beginPath();
-      ctx.ellipse(legOffsets[i] + 4, 40, 4, 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(legOffsets[i] + 3.5, 43, 4, 2, 0, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -167,7 +167,7 @@ const dog = {
     ctx.translate(-45, -5);
     ctx.rotate(Math.sin(this.tailAngle) * 0.5 - 0.2);
     ctx.beginPath();
-    ctx.ellipse(0, 0, 20, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 18, 5, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
@@ -335,3 +335,4 @@ function loop() {
 </script>
 </body>
 </html>
+
