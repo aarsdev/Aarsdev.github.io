@@ -1,173 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Argus vs Odysseus</title>
-
-<style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: black;
-    overflow: hidden;
-    font-family: Arial, sans-serif;
-  }
-
-  canvas {
-    display: block;
-  }
-
-  #startScreen {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    color: #ffd700;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-  }
-
-  button {
-    background: #ffd700;
-    color: black;
-    border: none;
-    padding: 14px 30px;
-    font-size: 20px;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-</style>
-</head>
-
-<body>
-
-<canvas id="game"></canvas>
-
-<div id="startScreen">
-  <h1>ARGUS vs ODYSSEUS</h1>
-  <button onclick="startGame()">START</button>
-  <p style="color:#888;margin-top:20px;">Tap / Click to jump</p>
-</div>
-
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener("resize", resize);
-resize();
-
-let gameRunning = false;
-let gravity = 0.6;
-
-const dog = {
-  x: 80,
-  y: 120,
-  vy: 0,
-  r: 18
-};
-
-const odysseus = {
-  x: () => canvas.width - 80,
-  y: () => canvas.height / 2
-};
-
-function startGame() {
-  document.getElementById("startScreen").style.display = "none";
-  gameRunning = true;
-  dog.y = 120;
-  dog.vy = -2;
-  loop();
-}
-
-function jump() {
-  if (!gameRunning) return;
-  dog.vy = -10;
-}
-
-window.addEventListener("click", jump);
-window.addEventListener("touchstart", jump);
-
-function drawDog() {
-  ctx.fillStyle = "#a8743c";
-  ctx.beginPath();
-  ctx.ellipse(dog.x, dog.y, 24, 14, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(dog.x + 22, dog.y - 6, 6, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#ffd700";
-  ctx.font = "16px Arial";
-  ctx.fillText("ARGUS", dog.x - 20, dog.y - 25);
-}
-
 function drawOdysseus() {
-  const x = odysseus.x();
-  const y = odysseus.y();
-
   ctx.strokeStyle = "#ffd700";
   ctx.lineWidth = 4;
 
   // head
   ctx.beginPath();
-  ctx.arc(x, y - 30, 12, 0, Math.PI * 2);
+  ctx.arc(odysseus.x, odysseus.y - 25, 12, 0, Math.PI * 2);
   ctx.stroke();
 
   // body
   ctx.beginPath();
-  ctx.moveTo(x, y - 18);
-  ctx.lineTo(x, y + 25);
+  ctx.moveTo(odysseus.x, odysseus.y - 13);
+  ctx.lineTo(odysseus.x, odysseus.y + 30);
   ctx.stroke();
 
   // arms
   ctx.beginPath();
-  ctx.moveTo(x - 20, y);
-  ctx.lineTo(x + 20, y);
+  ctx.moveTo(odysseus.x - 20, odysseus.y);
+  ctx.lineTo(odysseus.x + 20, odysseus.y);
   ctx.stroke();
 
   // legs
   ctx.beginPath();
-  ctx.moveTo(x, y + 25);
-  ctx.lineTo(x - 15, y + 55);
-  ctx.moveTo(x, y + 25);
-  ctx.lineTo(x + 15, y + 55);
+  ctx.moveTo(odysseus.x, odysseus.y + 30);
+  ctx.lineTo(odysseus.x - 15, odysseus.y + 55);
+  ctx.moveTo(odysseus.x, odysseus.y + 30);
+  ctx.lineTo(odysseus.x + 15, odysseus.y + 55);
   ctx.stroke();
 
+  // name
   ctx.fillStyle = "#ffd700";
   ctx.font = "16px Arial";
-  ctx.fillText("ODYSSEUS", x - 45, y - 50);
-}
+  ctx
 
-function update() {
-  dog.vy += gravity;
-  dog.y += dog.vy;
-
-  if (dog.y > canvas.height - 40) {
-    dog.y = canvas.height - 40;
-    dog.vy = 0;
-  }
-}
-
-function loop() {
-  if (!gameRunning) return;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  update();
-  drawDog();
-  drawOdysseus();
-
-  requestAnimationFrame(loop);
-}
-</script>
-
-</body>
-</html>
