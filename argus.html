@@ -2,25 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Argus Trying to Reach Odysseus</title>
+<title>ARGUS — Journey to Odysseus</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
 
 <style>
 body {
   margin: 0;
-  background: radial-gradient(#020202, #000);
-  color: #fff;
-  font-family: 'Orbitron', sans-serif;
+  background: radial-gradient(#050505, #000);
+  font-family: Orbitron, sans-serif;
   overflow: hidden;
+  touch-action: manipulation;
 }
 
 canvas {
   display: block;
   margin: auto;
   border: 4px solid #00f2ff;
-  box-shadow: 0 0 40px #00f2ff;
-  background: #030303;
+  box-shadow: 0 0 45px #00f2ff;
+  background: #020202;
 }
 
 #ui {
@@ -29,7 +29,7 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.88);
   z-index: 10;
 }
 
@@ -42,12 +42,12 @@ canvas {
 }
 
 button {
-  padding: 14px 28px;
+  padding: 14px 30px;
   font-size: 16px;
   font-family: Orbitron;
   border: none;
   cursor: pointer;
-  background: #ff00ff;
+  background: linear-gradient(45deg,#ff00ff,#00f2ff);
   color: #fff;
 }
 
@@ -67,8 +67,11 @@ button {
 <div id="ui">
   <div class="menu">
     <h1 style="color:#00f2ff;">ARGUS</h1>
-    <p>Trying to Reach Odysseus</p>
+    <p>Journey to Odysseus</p>
     <button onclick="start()">START JOURNEY</button>
+    <p style="font-size:12px;opacity:0.7;margin-top:10px;">
+      Tap / Click / Space to Jump
+    </p>
   </div>
 </div>
 
@@ -84,205 +87,171 @@ canvas.width = 960;
 canvas.height = 540;
 
 let active = false;
-let score = 0;
 let frame = 0;
+let score = 0;
 let speed = 4;
+let graceFrames = 0;
 
-// 🐕 ARGUS (SLIM DOG, HEAD CONNECTED)
+// resize for mobile screens
+function resize() {
+  const scale = Math.min(
+    window.innerWidth / 960,
+    window.innerHeight / 540
+  );
+  canvas.style.transform = `scale(${scale})`;
+  canvas.style.transformOrigin = "top center";
+}
+window.addEventListener("resize", resize);
+resize();
+
+// 🌌 background stars
+const stars = [...Array(100)].map(() => ({
+  x: Math.random() * canvas.width,
+  y: Math.random() * canvas.height,
+  s: Math.random() * 2 + 0.5
+}));
+
+// 🐕 ARGUS
 const dog = {
-  name: "Argus",
   x: 120,
-  y: 260,
-  vy: 0,
+  y: 120,      // START HIGH
+  vy: -2,      // gentle float
   gravity: 0.7,
   jump: -11,
-  tailAngle: 0,
+  tail: 0,
+  breath: 0,
 
   update() {
-    this.vy += this.gravity;
+    if (graceFrames > 0) {
+      graceFrames--;
+    } else {
+      this.vy += this.gravity;
+    }
+
     this.y += this.vy;
-    this.tailAngle = Math.sin(frame * 0.2) * 0.5;
+    this.tail = Math.sin(frame * 0.25) * 0.6;
+    this.breath = Math.sin(frame * 0.1) * 1.5;
+
     if (this.y < 40 || this.y > canvas.height - 60) lose();
   },
 
   draw() {
     ctx.save();
-    ctx.translate(this.x, this.y);
+    ctx.translate(this.x, this.y + this.breath);
 
-    // Body shadow
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = "rgba(0,0,0,0.3)";
-
-    // BODY (slimmer)
+    // body
     ctx.fillStyle = "#8b5a2b";
     ctx.beginPath();
-    ctx.ellipse(0, 0, 32, 16, -0.1, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 32, 16, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // HEAD (connected)
+    // head
     ctx.beginPath();
     ctx.ellipse(40, -10, 13, 11, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // SNOUT
+    // ears
+    ctx.fillStyle = "#5c3a1a";
+    ctx.beginPath();
+    ctx.ellipse(38, -22, 4, 9, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(48, -22, 4, 9, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // snout
     ctx.fillStyle = "#a67c52";
     ctx.beginPath();
     ctx.ellipse(53, -8, 7, 4, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // NOSE
+    // nose
     ctx.fillStyle = "#000";
     ctx.beginPath();
     ctx.arc(58, -8, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // EYES
-    ctx.fillStyle = "#000";
+    // eye
     ctx.beginPath();
     ctx.arc(45, -13, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // EARS
-    ctx.fillStyle = "#5c3a1a";
-    ctx.beginPath();
-    ctx.ellipse(38, -22, 4, 9, -0.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(48, -22, 4, 9, 0.3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // LEGS with paws
+    // legs
     ctx.fillStyle = "#8b5a2b";
-    let legOffsets = [-25, -10, 15, 30];
-    for (let i = 0; i < 4; i++) {
+    [-25,-10,15,30].forEach(x=>{
+      ctx.fillRect(x,15,7,28);
       ctx.beginPath();
-      ctx.fillRect(legOffsets[i], 15, 7, 28);
-      ctx.beginPath();
-      ctx.ellipse(legOffsets[i] + 3.5, 43, 4, 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(x+3.5,43,4,2,0,0,Math.PI*2);
       ctx.fill();
-    }
+    });
 
-    // TAIL
+    // tail
     ctx.save();
-    ctx.translate(-45, -5);
-    ctx.rotate(Math.sin(this.tailAngle) * 0.5 - 0.2);
+    ctx.translate(-45,-5);
+    ctx.rotate(this.tail - 0.3);
     ctx.beginPath();
-    ctx.ellipse(0, 0, 18, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(0,0,18,5,0,0,Math.PI*2);
     ctx.fill();
     ctx.restore();
 
     ctx.restore();
 
-    // NAME
-    ctx.save();
-    ctx.fillStyle = "#ffd27f";
-    ctx.shadowColor = "#ffb84d";
-    ctx.shadowBlur = 8;
-    ctx.font = "bold 16px Orbitron";
+    ctx.fillStyle="#ffd27f";
+    ctx.font="bold 16px Orbitron";
     ctx.fillText("ARGUS", this.x - 26, this.y - 40);
-    ctx.restore();
   }
 };
 
-// 🧍 ODYSSEUS (GOLDEN)
+// 🧍 ODYSSEUS
 const odysseus = {
-  name: "Odysseus",
   x: canvas.width - 120,
   y: 210,
-
   draw() {
-    ctx.save();
-    ctx.strokeStyle = "#FFD700"; // golden
-    ctx.fillStyle = "#FFD700";   // golden
+    ctx.strokeStyle = "#FFD700";
     ctx.lineWidth = 4;
-    ctx.shadowBlur = 25;
-    ctx.shadowColor = "#FFAA00"; // golden glow
-
-    // helmet
     ctx.beginPath();
-    ctx.arc(this.x, this.y, 18, Math.PI, 0);
+    ctx.arc(this.x,this.y,18,Math.PI,0);
     ctx.stroke();
-
-    // helmet crest
     ctx.beginPath();
-    ctx.moveTo(this.x, this.y - 18);
-    ctx.lineTo(this.x, this.y - 35);
+    ctx.moveTo(this.x,this.y);
+    ctx.lineTo(this.x,this.y+75);
     ctx.stroke();
-
-    // body armor
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y);
-    ctx.lineTo(this.x, this.y + 70);
-    ctx.stroke();
-
-    // arms
-    ctx.beginPath();
-    ctx.moveTo(this.x - 30, this.y + 30);
-    ctx.lineTo(this.x + 30, this.y + 30);
-    ctx.stroke();
-
-    // sword
-    ctx.beginPath();
-    ctx.moveTo(this.x + 30, this.y + 20);
-    ctx.lineTo(this.x + 55, this.y - 10);
-    ctx.stroke();
-
-    // shield
-    ctx.beginPath();
-    ctx.arc(this.x - 40, this.y + 40, 18, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // legs
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y + 70);
-    ctx.lineTo(this.x - 20, this.y + 120);
-    ctx.moveTo(this.x, this.y + 70);
-    ctx.lineTo(this.x + 20, this.y + 120);
-    ctx.stroke();
-
-    ctx.restore();
-
-    // name
-    ctx.fillStyle = "#FFD700"; // golden name
-    ctx.font = "16px Orbitron";
-    ctx.fillText("ODYSSEUS", this.x - 45, this.y - 40);
   }
 };
 
-// OBSTACLES (bigger gap)
+// 🚧 obstacles
 let obstacles = [];
-
 class Obstacle {
   constructor() {
     this.x = canvas.width;
-    this.width = 70;
-    this.gap = 220; // bigger gap for easier gameplay
+    this.w = 70;
+    this.gap = 220;
     this.top = Math.random() * 200 + 60;
   }
   update() { this.x -= speed; }
   draw() {
     ctx.fillStyle = "#00f2ff";
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = "#00f2ff";
-    ctx.fillRect(this.x, 0, this.width, this.top);
-    ctx.fillRect(this.x, this.top + this.gap, this.width, canvas.height);
-    ctx.shadowBlur = 0;
+    ctx.fillRect(this.x, 0, this.w, this.top);
+    ctx.fillRect(this.x, this.top + this.gap, this.w, canvas.height);
   }
 }
 
-// GAME CONTROL
+// 🎮 game control
 function start() {
   document.getElementById("ui").style.display = "none";
-  dog.y = 260;
-  dog.vy = 0;
   obstacles = [];
   score = 0;
   frame = 0;
+  speed = 4;
+  graceFrames = 30;
+  dog.y = 120;
+  dog.vy = -2;
   active = true;
   loop();
 }
 
 function lose() {
+  if (!active) return;
   active = false;
   alert("Argus failed the journey.");
   document.getElementById("ui").style.display = "flex";
@@ -294,30 +263,48 @@ function win() {
   document.getElementById("ui").style.display = "flex";
 }
 
-// INPUT
-window.onkeydown = e => { if (e.code === "Space") dog.vy = dog.jump; };
-canvas.onmousedown = () => dog.vy = dog.jump;
+// INPUT (PC + MOBILE)
+function jump() {
+  if (!active) return;
+  dog.vy = dog.jump;
+}
 
-// LOOP
+window.addEventListener("keydown", e => {
+  if (e.code === "Space") jump();
+});
+
+canvas.addEventListener("mousedown", jump);
+canvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  jump();
+}, { passive:false });
+
+// 🔁 loop
 function loop() {
   if (!active) return;
-
   ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  stars.forEach(s=>{
+    s.x -= s.s * 0.2;
+    if (s.x < 0) s.x = canvas.width;
+    ctx.fillStyle="#444";
+    ctx.fillRect(s.x,s.y,s.s,s.s);
+  });
 
   if (frame % 110 === 0) obstacles.push(new Obstacle());
 
   for (let i = obstacles.length - 1; i >= 0; i--) {
-    let o = obstacles[i];
+    const o = obstacles[i];
     o.update();
     o.draw();
 
     if (
       dog.x + 30 > o.x &&
-      dog.x - 30 < o.x + o.width &&
+      dog.x - 30 < o.x + o.w &&
       (dog.y < o.top || dog.y > o.top + o.gap)
     ) lose();
 
-    if (o.x + o.width < 0) obstacles.splice(i,1);
+    if (o.x + o.w < 0) obstacles.splice(i, 1);
   }
 
   dog.update();
