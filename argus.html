@@ -5,67 +5,16 @@
 <title>ARGUS — Journey to Odysseus</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
 <style>
-body {
-  margin: 0;
-  background: radial-gradient(#050505, #000);
-  font-family: Orbitron, sans-serif;
-  overflow: hidden;
-  touch-action: manipulation;
-  color: white;
-}
-canvas {
-  display: block;
-  margin: auto;
-  border: 4px solid #00f2ff;
-  box-shadow: 0 0 45px #00f2ff;
-  background: #020202;
-}
-#ui {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.9);
-  z-index: 10;
-}
-.menu {
-  background: #111;
-  padding: 35px;
-  border-radius: 22px;
-  border: 2px solid #ff00ff;
-  text-align: center;
-  width: 300px;
-  box-shadow: 0 0 40px #ff00ff66;
-}
-.menu h1 {
-  color: #00f2ff;
-  margin-bottom: 10px;
-}
-button {
-  padding: 14px 30px;
-  font-size: 16px;
-  font-family: Orbitron;
-  border: none;
-  cursor: pointer;
-  background: linear-gradient(45deg,#ff00ff,#00f2ff);
-  color: #000;
-  font-weight: bold;
-  border-radius: 10px;
-  box-shadow: 0 0 15px #00f2ff;
-}
-button:hover { filter: brightness(1.2); }
-#hud {
-  position: fixed;
-  top: 15px;
-  width: 100%;
-  text-align: center;
-  color: #00f2ff;
-  font-size: 20px;
-  text-shadow: 0 0 10px #00f2ff;
-}
-.leaderboard { margin-top: 20px; text-align: left; font-size: 14px; }
-.leaderboard h3 { text-align: center; color: #ffd700; margin-bottom: 6px; }
+body { margin: 0; background: radial-gradient(#050505, #000); font-family: Orbitron,sans-serif; overflow:hidden; color:white; }
+canvas { display:block; margin:auto; border:4px solid #00f2ff; box-shadow:0 0 45px #00f2ff; background:#020202; }
+#ui { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.9); z-index:10; }
+.menu { background:#111; padding:35px; border-radius:22px; border:2px solid #ff00ff; text-align:center; width:300px; box-shadow:0 0 40px #ff00ff66; }
+.menu h1 { color:#00f2ff; margin-bottom:10px; }
+button { padding:14px 30px; font-size:16px; font-family:Orbitron; border:none; cursor:pointer; background:linear-gradient(45deg,#ff00ff,#00f2ff); color:#000; font-weight:bold; border-radius:10px; box-shadow:0 0 15px #00f2ff; }
+button:hover { filter:brightness(1.2); }
+#hud { position:fixed; top:15px; width:100%; text-align:center; color:#00f2ff; font-size:20px; text-shadow:0 0 10px #00f2ff; }
+.leaderboard { margin-top:20px; text-align:left; font-size:14px; }
+.leaderboard h3 { text-align:center; color:#ffd700; margin-bottom:6px; }
 </style>
 </head>
 <body>
@@ -110,15 +59,28 @@ const stars=[...Array(100)].map(()=>({
   s:Math.random()*2+0.5
 }));
 
-// 🐕 ARGUS - cartoon dog
+// 🐕 ARGUS - animated dog
 const dog = {
   x:120, y:120, vy:-2,
   gravity:0.7, jump:-11,
+  tailAngle:0,
+  tailDirection:1,
+  legSwing:0,
+  legDirection:1,
   update(){
+    // gravity
     if(graceFrames>0) graceFrames--;
     else this.vy+=this.gravity;
     this.y+=this.vy;
     if(this.y<40||this.y>canvas.height-60) lose();
+
+    // tail animation
+    this.tailAngle += 0.15*this.tailDirection;
+    if(this.tailAngle>0.5 || this.tailAngle<-0.5) this.tailDirection*=-1;
+
+    // legs animation
+    this.legSwing += 0.2*this.legDirection;
+    if(this.legSwing>5 || this.legSwing<-5) this.legDirection*=-1;
   },
   draw(){
     ctx.save();
@@ -130,11 +92,12 @@ const dog = {
     ctx.ellipse(0,0,25,15,0,0,Math.PI*2);
     ctx.fill();
 
-    // LEGS
-    ctx.fillRect(-20,10,8,20); // back left
-    ctx.fillRect(10,10,8,20);  // back right
-    ctx.fillRect(-15,-15,6,15); // front left
-    ctx.fillRect(15,-15,6,15);  // front right
+    // LEGS (swing)
+    ctx.fillStyle="#8b5a2b";
+    ctx.fillRect(-20,10,8,20 + this.legSwing); // back left
+    ctx.fillRect(10,10,8,20 - this.legSwing);  // back right
+    ctx.fillRect(-15,-15,6,15 + this.legSwing); // front left
+    ctx.fillRect(15,-15,6,15 - this.legSwing);  // front right
 
     // HEAD
     ctx.beginPath();
@@ -166,13 +129,17 @@ const dog = {
     ctx.arc(35,-12,3,0,Math.PI*2);
     ctx.fill();
 
-    // TAIL
+    // TAIL (wagging)
+    ctx.save();
+    ctx.translate(-25,-5);
+    ctx.rotate(this.tailAngle);
     ctx.strokeStyle="#8b5a2b";
     ctx.lineWidth=5;
     ctx.beginPath();
-    ctx.moveTo(-25,-5);
-    ctx.lineTo(-35,-15);
+    ctx.moveTo(0,0);
+    ctx.lineTo(-20,-10);
     ctx.stroke();
+    ctx.restore();
 
     ctx.restore();
 
@@ -192,7 +159,6 @@ const odysseus={
     ctx.lineWidth=4;
     ctx.shadowBlur=20;
     ctx.shadowColor="#FFAA00";
-
     ctx.beginPath();
     ctx.arc(this.x,this.y,18,Math.PI,0); // helmet
     ctx.stroke();
@@ -205,7 +171,6 @@ const odysseus={
     ctx.beginPath();
     ctx.moveTo(this.x,this.y+80); ctx.lineTo(this.x-20,this.y+130);
     ctx.moveTo(this.x,this.y+80); ctx.lineTo(this.x+20,this.y+130); ctx.stroke(); // legs
-
     ctx.restore();
     ctx.fillStyle="#FFD700";
     ctx.font="16px Orbitron";
