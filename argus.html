@@ -5,7 +5,7 @@
 <title>ARGUS — Journey to Odysseus</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
 <style>
-body { margin: 0; background: radial-gradient(#050505, #000); font-family: Orbitron,sans-serif; overflow:hidden; color:white; }
+body { margin:0; background:radial-gradient(#050505,#000); font-family:Orbitron,sans-serif; overflow:hidden; color:white; }
 canvas { display:block; margin:auto; border:4px solid #00f2ff; box-shadow:0 0 45px #00f2ff; background:#020202; }
 #ui { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.9); z-index:10; }
 .menu { background:#111; padding:35px; border-radius:22px; border:2px solid #ff00ff; text-align:center; width:300px; box-shadow:0 0 40px #ff00ff66; }
@@ -59,16 +59,13 @@ const stars=[...Array(100)].map(()=>({
   s:Math.random()*2+0.5
 }));
 
-// 🐕 ARGUS - animated dog
+// 🐕 ARGUS - athletic hunting dog
 const dog = {
   x:120, y:120, vy:-2,
   gravity:0.7, jump:-11,
-  tailAngle:0,
-  tailDirection:1,
-  legSwing:0,
-  legDirection:1,
+  tailAngle:0, tailDirection:1,
+  legSwing:0, legDirection:1,
   update(){
-    // gravity
     if(graceFrames>0) graceFrames--;
     else this.vy+=this.gravity;
     this.y+=this.vy;
@@ -86,58 +83,65 @@ const dog = {
     ctx.save();
     ctx.translate(this.x,this.y);
 
-    // BODY
+    // BODY - lean and muscular
     ctx.fillStyle="#8b5a2b";
     ctx.beginPath();
-    ctx.ellipse(0,0,25,15,0,0,Math.PI*2);
+    ctx.ellipse(0,0,28,18,0,0,Math.PI*2);
     ctx.fill();
 
-    // LEGS (swing)
+    // LEGS - athletic, swinging
     ctx.fillStyle="#8b5a2b";
-    ctx.fillRect(-20,10,8,20 + this.legSwing); // back left
-    ctx.fillRect(10,10,8,20 - this.legSwing);  // back right
-    ctx.fillRect(-15,-15,6,15 + this.legSwing); // front left
-    ctx.fillRect(15,-15,6,15 - this.legSwing);  // front right
+    ctx.fillRect(-22,12,7,25 + this.legSwing); // back left
+    ctx.fillRect(15,12,7,25 - this.legSwing);  // back right
+    ctx.fillRect(-18,-18,6,18 + this.legSwing); // front left
+    ctx.fillRect(18,-18,6,18 - this.legSwing);  // front right
 
-    // HEAD
+    // CHEST definition
+    ctx.fillStyle="#a0522d";
     ctx.beginPath();
-    ctx.ellipse(30,-10,15,12,0,0,Math.PI*2);
+    ctx.ellipse(0,3,28,6,0,0,Math.PI*2);
     ctx.fill();
 
-    // EARS
+    // HEAD - alert and angular
+    ctx.fillStyle="#8b5a2b";
     ctx.beginPath();
-    ctx.moveTo(20,-20); ctx.lineTo(18,-30); ctx.lineTo(25,-20); ctx.fill();
+    ctx.ellipse(32,-10,16,13,0,0,Math.PI*2);
+    ctx.fill();
+
+    // EARS - pointed
     ctx.beginPath();
-    ctx.moveTo(35,-20); ctx.lineTo(33,-30); ctx.lineTo(40,-20); ctx.fill();
+    ctx.moveTo(22,-22); ctx.lineTo(20,-34); ctx.lineTo(27,-22); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(37,-22); ctx.lineTo(35,-34); ctx.lineTo(42,-22); ctx.fill();
 
     // SNOUT
     ctx.fillStyle="#d2a679";
     ctx.beginPath();
-    ctx.ellipse(38,-8,8,5,0,0,Math.PI*2);
+    ctx.ellipse(40,-8,9,5,0,0,Math.PI*2);
     ctx.fill();
 
     // NOSE
     ctx.fillStyle="#000";
     ctx.beginPath();
-    ctx.arc(45,-8,3,0,Math.PI*2);
+    ctx.arc(47,-8,3,0,Math.PI*2);
     ctx.fill();
 
-    // EYES
+    // EYES - alert
     ctx.fillStyle="#000";
     ctx.beginPath();
-    ctx.arc(30,-12,3,0,Math.PI*2);
-    ctx.arc(35,-12,3,0,Math.PI*2);
+    ctx.arc(31,-12,3,0,Math.PI*2);
+    ctx.arc(36,-12,3,0,Math.PI*2);
     ctx.fill();
 
-    // TAIL (wagging)
+    // TAIL - wagging
     ctx.save();
     ctx.translate(-25,-5);
     ctx.rotate(this.tailAngle);
     ctx.strokeStyle="#8b5a2b";
-    ctx.lineWidth=5;
+    ctx.lineWidth=4;
     ctx.beginPath();
     ctx.moveTo(0,0);
-    ctx.lineTo(-20,-10);
+    ctx.lineTo(-22,-10);
     ctx.stroke();
     ctx.restore();
 
@@ -159,6 +163,7 @@ const odysseus={
     ctx.lineWidth=4;
     ctx.shadowBlur=20;
     ctx.shadowColor="#FFAA00";
+
     ctx.beginPath();
     ctx.arc(this.x,this.y,18,Math.PI,0); // helmet
     ctx.stroke();
@@ -171,6 +176,7 @@ const odysseus={
     ctx.beginPath();
     ctx.moveTo(this.x,this.y+80); ctx.lineTo(this.x-20,this.y+130);
     ctx.moveTo(this.x,this.y+80); ctx.lineTo(this.x+20,this.y+130); ctx.stroke(); // legs
+
     ctx.restore();
     ctx.fillStyle="#FFD700";
     ctx.font="16px Orbitron";
