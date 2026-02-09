@@ -13,6 +13,7 @@ body {
   font-family: Orbitron, sans-serif;
   overflow: hidden;
   touch-action: manipulation;
+  color: white;
 }
 
 canvas {
@@ -29,16 +30,23 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.88);
+  background: rgba(0,0,0,0.9);
   z-index: 10;
 }
 
 .menu {
   background: #111;
-  padding: 40px;
-  border-radius: 20px;
+  padding: 35px;
+  border-radius: 22px;
   border: 2px solid #ff00ff;
   text-align: center;
+  width: 300px;
+  box-shadow: 0 0 40px #ff00ff66;
+}
+
+.menu h1 {
+  color: #00f2ff;
+  margin-bottom: 10px;
 }
 
 button {
@@ -48,7 +56,14 @@ button {
   border: none;
   cursor: pointer;
   background: linear-gradient(45deg,#ff00ff,#00f2ff);
-  color: #fff;
+  color: #000;
+  font-weight: bold;
+  border-radius: 10px;
+  box-shadow: 0 0 15px #00f2ff;
+}
+
+button:hover {
+  filter: brightness(1.2);
 }
 
 #hud {
@@ -58,6 +73,19 @@ button {
   text-align: center;
   color: #00f2ff;
   font-size: 20px;
+  text-shadow: 0 0 10px #00f2ff;
+}
+
+.leaderboard {
+  margin-top: 20px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.leaderboard h3 {
+  text-align: center;
+  color: #ffd700;
+  margin-bottom: 6px;
 }
 </style>
 </head>
@@ -66,256 +94,220 @@ button {
 
 <div id="ui">
   <div class="menu">
-    <h1 style="color:#00f2ff;">ARGUS</h1>
+    <h1>ARGUS</h1>
     <p>Journey to Odysseus</p>
+
     <button onclick="start()">START JOURNEY</button>
-    <p style="font-size:12px;opacity:0.7;margin-top:10px;">
+
+    <p style="font-size:12px;opacity:0.7;margin-top:8px;">
       Tap / Click / Space to Jump
     </p>
+
+    <div class="leaderboard">
+      <h3>🏆 Leaderboard</h3>
+      <ol id="scores"></ol>
+    </div>
   </div>
 </div>
 
 <div id="hud">DISTANCE: <span id="score">0</span></div>
-
 <canvas id="game"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-
 canvas.width = 960;
 canvas.height = 540;
 
-let active = false;
-let frame = 0;
-let score = 0;
-let speed = 4;
-let graceFrames = 0;
+let active=false, frame=0, score=0, speed=4, graceFrames=0;
 
-// resize for mobile screens
+// 📱 scale for mobile
 function resize() {
-  const scale = Math.min(
-    window.innerWidth / 960,
-    window.innerHeight / 540
-  );
+  const scale = Math.min(window.innerWidth/960, window.innerHeight/540);
   canvas.style.transform = `scale(${scale})`;
   canvas.style.transformOrigin = "top center";
 }
 window.addEventListener("resize", resize);
 resize();
 
-// 🌌 background stars
-const stars = [...Array(100)].map(() => ({
-  x: Math.random() * canvas.width,
-  y: Math.random() * canvas.height,
-  s: Math.random() * 2 + 0.5
+// 🌌 stars
+const stars=[...Array(100)].map(()=>({
+  x:Math.random()*canvas.width,
+  y:Math.random()*canvas.height,
+  s:Math.random()*2+0.5
 }));
 
 // 🐕 ARGUS
-const dog = {
-  x: 120,
-  y: 120,      // START HIGH
-  vy: -2,      // gentle float
-  gravity: 0.7,
-  jump: -11,
-  tail: 0,
-  breath: 0,
-
-  update() {
-    if (graceFrames > 0) {
-      graceFrames--;
-    } else {
-      this.vy += this.gravity;
-    }
-
-    this.y += this.vy;
-    this.tail = Math.sin(frame * 0.25) * 0.6;
-    this.breath = Math.sin(frame * 0.1) * 1.5;
-
-    if (this.y < 40 || this.y > canvas.height - 60) lose();
+const dog={
+  x:120,y:120,vy:-2,
+  gravity:0.7,jump:-11,
+  update(){
+    if(graceFrames>0) graceFrames--;
+    else this.vy+=this.gravity;
+    this.y+=this.vy;
+    if(this.y<40||this.y>canvas.height-60) lose();
   },
-
-  draw() {
+  draw(){
     ctx.save();
-    ctx.translate(this.x, this.y + this.breath);
+    ctx.translate(this.x,this.y);
 
-    // body
-    ctx.fillStyle = "#8b5a2b";
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 32, 16, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle="#8b5a2b";
+    ctx.beginPath(); ctx.ellipse(0,0,32,16,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(40,-10,13,11,0,0,Math.PI*2); ctx.fill();
 
-    // head
-    ctx.beginPath();
-    ctx.ellipse(40, -10, 13, 11, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // ears
-    ctx.fillStyle = "#5c3a1a";
-    ctx.beginPath();
-    ctx.ellipse(38, -22, 4, 9, -0.4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(48, -22, 4, 9, 0.4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // snout
-    ctx.fillStyle = "#a67c52";
-    ctx.beginPath();
-    ctx.ellipse(53, -8, 7, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // nose
-    ctx.fillStyle = "#000";
-    ctx.beginPath();
-    ctx.arc(58, -8, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // eye
-    ctx.beginPath();
-    ctx.arc(45, -13, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // legs
-    ctx.fillStyle = "#8b5a2b";
-    [-25,-10,15,30].forEach(x=>{
-      ctx.fillRect(x,15,7,28);
-      ctx.beginPath();
-      ctx.ellipse(x+3.5,43,4,2,0,0,Math.PI*2);
-      ctx.fill();
-    });
-
-    // tail
-    ctx.save();
-    ctx.translate(-45,-5);
-    ctx.rotate(this.tail - 0.3);
-    ctx.beginPath();
-    ctx.ellipse(0,0,18,5,0,0,Math.PI*2);
-    ctx.fill();
-    ctx.restore();
+    ctx.fillStyle="#000";
+    ctx.beginPath(); ctx.arc(45,-13,2.5,0,Math.PI*2); ctx.fill();
 
     ctx.restore();
 
     ctx.fillStyle="#ffd27f";
     ctx.font="bold 16px Orbitron";
-    ctx.fillText("ARGUS", this.x - 26, this.y - 40);
+    ctx.fillText("ARGUS",this.x-26,this.y-40);
   }
 };
 
-// 🧍 ODYSSEUS
-const odysseus = {
-  x: canvas.width - 120,
-  y: 210,
-  draw() {
-    ctx.strokeStyle = "#FFD700";
-    ctx.lineWidth = 4;
+// 🧍 ODYSSEUS (VISIBLE AGAIN)
+const odysseus={
+  x:canvas.width-140,y:200,
+  draw(){
+    ctx.save();
+    ctx.strokeStyle="#FFD700";
+    ctx.lineWidth=4;
+    ctx.shadowBlur=20;
+    ctx.shadowColor="#FFAA00";
+
+    // helmet
     ctx.beginPath();
     ctx.arc(this.x,this.y,18,Math.PI,0);
     ctx.stroke();
+
+    // crest
+    ctx.beginPath();
+    ctx.moveTo(this.x,this.y-18);
+    ctx.lineTo(this.x,this.y-40);
+    ctx.stroke();
+
+    // body
     ctx.beginPath();
     ctx.moveTo(this.x,this.y);
-    ctx.lineTo(this.x,this.y+75);
+    ctx.lineTo(this.x,this.y+80);
     ctx.stroke();
+
+    // arms
+    ctx.beginPath();
+    ctx.moveTo(this.x-30,this.y+30);
+    ctx.lineTo(this.x+30,this.y+30);
+    ctx.stroke();
+
+    // legs
+    ctx.beginPath();
+    ctx.moveTo(this.x,this.y+80);
+    ctx.lineTo(this.x-20,this.y+130);
+    ctx.moveTo(this.x,this.y+80);
+    ctx.lineTo(this.x+20,this.y+130);
+    ctx.stroke();
+
+    ctx.restore();
+
+    ctx.fillStyle="#FFD700";
+    ctx.font="16px Orbitron";
+    ctx.fillText("ODYSSEUS",this.x-45,this.y-50);
   }
 };
 
 // 🚧 obstacles
-let obstacles = [];
-class Obstacle {
-  constructor() {
-    this.x = canvas.width;
-    this.w = 70;
-    this.gap = 220;
-    this.top = Math.random() * 200 + 60;
+let obstacles=[];
+class Obstacle{
+  constructor(){
+    this.x=canvas.width;
+    this.w=70;
+    this.gap=220;
+    this.top=Math.random()*200+60;
   }
-  update() { this.x -= speed; }
-  draw() {
-    ctx.fillStyle = "#00f2ff";
-    ctx.fillRect(this.x, 0, this.w, this.top);
-    ctx.fillRect(this.x, this.top + this.gap, this.w, canvas.height);
+  update(){this.x-=speed;}
+  draw(){
+    ctx.fillStyle="#00f2ff";
+    ctx.fillRect(this.x,0,this.w,this.top);
+    ctx.fillRect(this.x,this.top+this.gap,this.w,canvas.height);
   }
 }
 
-// 🎮 game control
-function start() {
-  document.getElementById("ui").style.display = "none";
-  obstacles = [];
-  score = 0;
-  frame = 0;
-  speed = 4;
-  graceFrames = 30;
-  dog.y = 120;
-  dog.vy = -2;
-  active = true;
+// 🏆 LEADERBOARD
+function loadScores(){
+  const list=document.getElementById("scores");
+  list.innerHTML="";
+  const data=JSON.parse(localStorage.getItem("argusScores")||"[]");
+  data.forEach(s=>{
+    const li=document.createElement("li");
+    li.textContent=s;
+    list.appendChild(li);
+  });
+}
+
+function saveScore(){
+  let data=JSON.parse(localStorage.getItem("argusScores")||"[]");
+  data.push(score);
+  data=data.sort((a,b)=>b-a).slice(0,5);
+  localStorage.setItem("argusScores",JSON.stringify(data));
+  loadScores();
+}
+loadScores();
+
+// 🎮 controls
+function start(){
+  document.getElementById("ui").style.display="none";
+  obstacles=[];
+  score=frame=0;
+  speed=4;
+  graceFrames=30;
+  dog.y=120; dog.vy=-2;
+  active=true;
   loop();
 }
 
-function lose() {
-  if (!active) return;
-  active = false;
-  alert("Argus failed the journey.");
-  document.getElementById("ui").style.display = "flex";
+function lose(){
+  if(!active) return;
+  active=false;
+  saveScore();
+  document.getElementById("ui").style.display="flex";
 }
 
-function win() {
-  active = false;
-  alert("🏆 Argus reached Odysseus!");
-  document.getElementById("ui").style.display = "flex";
+function win(){
+  active=false;
+  saveScore();
+  document.getElementById("ui").style.display="flex";
 }
 
-// INPUT (PC + MOBILE)
-function jump() {
-  if (!active) return;
-  dog.vy = dog.jump;
-}
-
-window.addEventListener("keydown", e => {
-  if (e.code === "Space") jump();
-});
-
-canvas.addEventListener("mousedown", jump);
-canvas.addEventListener("touchstart", e => {
-  e.preventDefault();
-  jump();
-}, { passive:false });
+function jump(){ if(active) dog.vy=dog.jump; }
+window.addEventListener("keydown",e=>{ if(e.code==="Space") jump(); });
+canvas.addEventListener("mousedown",jump);
+canvas.addEventListener("touchstart",e=>{e.preventDefault();jump();},{passive:false});
 
 // 🔁 loop
-function loop() {
-  if (!active) return;
+function loop(){
+  if(!active) return;
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   stars.forEach(s=>{
-    s.x -= s.s * 0.2;
-    if (s.x < 0) s.x = canvas.width;
+    s.x-=s.s*0.2;
+    if(s.x<0) s.x=canvas.width;
     ctx.fillStyle="#444";
     ctx.fillRect(s.x,s.y,s.s,s.s);
   });
 
-  if (frame % 110 === 0) obstacles.push(new Obstacle());
-
-  for (let i = obstacles.length - 1; i >= 0; i--) {
-    const o = obstacles[i];
-    o.update();
-    o.draw();
-
-    if (
-      dog.x + 30 > o.x &&
-      dog.x - 30 < o.x + o.w &&
-      (dog.y < o.top || dog.y > o.top + o.gap)
-    ) lose();
-
-    if (o.x + o.w < 0) obstacles.splice(i, 1);
+  if(frame%110===0) obstacles.push(new Obstacle());
+  for(let i=obstacles.length-1;i>=0;i--){
+    const o=obstacles[i];
+    o.update(); o.draw();
+    if(dog.x+30>o.x&&dog.x-30<o.x+o.w&&(dog.y<o.top||dog.y>o.top+o.gap)) lose();
+    if(o.x+o.w<0) obstacles.splice(i,1);
   }
 
-  dog.update();
-  dog.draw();
-  odysseus.draw();
-
-  if (dog.x + 30 >= odysseus.x - 20) win();
+  dog.update(); dog.draw(); odysseus.draw();
+  if(dog.x+30>=odysseus.x-20) win();
 
   score++;
-  document.getElementById("score").innerText = score;
-
+  document.getElementById("score").innerText=score;
   frame++;
   requestAnimationFrame(loop);
 }
