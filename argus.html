@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -138,10 +137,10 @@ const stars=[...Array(100)].map(()=>({
   s:Math.random()*2+0.5
 }));
 
-// 🐕 ARGUS
-const dog={
-  x:120,y:120,vy:-2,
-  gravity:0.7,jump:-11,
+// 🐕 ARGUS - upgraded dog
+const dog = {
+  x:120, y:120, vy:-2,
+  gravity:0.7, jump:-11,
   update(){
     if(graceFrames>0) graceFrames--;
     else this.vy+=this.gravity;
@@ -152,22 +151,59 @@ const dog={
     ctx.save();
     ctx.translate(this.x,this.y);
 
+    // BODY
     ctx.fillStyle="#8b5a2b";
-    ctx.beginPath(); ctx.ellipse(0,0,32,16,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(40,-10,13,11,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0,0,30,18,0,0,Math.PI*2);
+    ctx.fill();
 
+    // HEAD
+    ctx.beginPath();
+    ctx.ellipse(35,-10,18,16,0,0,Math.PI*2);
+    ctx.fill();
+
+    // EARS
+    ctx.beginPath();
+    ctx.ellipse(25,-25,6,12,0,0,Math.PI*2);
+    ctx.ellipse(45,-25,6,12,0,0,Math.PI*2);
+    ctx.fill();
+
+    // SNOUT
+    ctx.fillStyle="#d2a679";
+    ctx.beginPath();
+    ctx.ellipse(50,-5,8,6,0,0,Math.PI*2);
+    ctx.fill();
+
+    // NOSE
     ctx.fillStyle="#000";
-    ctx.beginPath(); ctx.arc(45,-13,2.5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(57,-5,3,0,Math.PI*2);
+    ctx.fill();
+
+    // EYES
+    ctx.beginPath();
+    ctx.arc(42,-15,3,0,Math.PI*2);
+    ctx.arc(48,-15,3,0,Math.PI*2);
+    ctx.fill();
+
+    // TAIL
+    ctx.beginPath();
+    ctx.strokeStyle="#8b5a2b";
+    ctx.lineWidth=6;
+    ctx.moveTo(-30,-5);
+    ctx.lineTo(-50,-20);
+    ctx.stroke();
 
     ctx.restore();
 
+    // NAME
     ctx.fillStyle="#ffd27f";
     ctx.font="bold 16px Orbitron";
     ctx.fillText("ARGUS",this.x-26,this.y-40);
   }
 };
 
-// 🧍 ODYSSEUS (VISIBLE AGAIN)
+// 🧍 ODYSSEUS
 const odysseus={
   x:canvas.width-140,y:200,
   draw(){
@@ -244,7 +280,6 @@ function loadScores(){
     list.appendChild(li);
   });
 }
-
 function saveScore(){
   let data=JSON.parse(localStorage.getItem("argusScores")||"[]");
   data.push(score);
@@ -257,28 +292,13 @@ loadScores();
 // 🎮 controls
 function start(){
   document.getElementById("ui").style.display="none";
-  obstacles=[];
-  score=frame=0;
-  speed=4;
-  graceFrames=30;
+  obstacles=[]; score=frame=0; speed=4; graceFrames=30;
   dog.y=120; dog.vy=-2;
   active=true;
   loop();
 }
-
-function lose(){
-  if(!active) return;
-  active=false;
-  saveScore();
-  document.getElementById("ui").style.display="flex";
-}
-
-function win(){
-  active=false;
-  saveScore();
-  document.getElementById("ui").style.display="flex";
-}
-
+function lose(){ if(!active) return; active=false; saveScore(); document.getElementById("ui").style.display="flex"; }
+function win(){ active=false; saveScore(); document.getElementById("ui").style.display="flex"; }
 function jump(){ if(active) dog.vy=dog.jump; }
 window.addEventListener("keydown",e=>{ if(e.code==="Space") jump(); });
 canvas.addEventListener("mousedown",jump);
