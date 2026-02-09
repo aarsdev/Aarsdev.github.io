@@ -2,315 +2,172 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>ARGUS — Journey to Odysseus</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Argus vs Odysseus</title>
 
 <style>
-body {
-  margin: 0;
-  background: radial-gradient(#050505, #000);
-  font-family: Orbitron, sans-serif;
-  overflow: hidden;
-  touch-action: manipulation;
-  color: white;
-}
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: black;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+  }
 
-canvas {
-  display: block;
-  margin: auto;
-  border: 4px solid #00f2ff;
-  box-shadow: 0 0 45px #00f2ff;
-  background: #020202;
-}
+  canvas {
+    display: block;
+  }
 
-#ui {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.9);
-  z-index: 10;
-}
+  #startScreen {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    color: #ffd700;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
 
-.menu {
-  background: #111;
-  padding: 35px;
-  border-radius: 22px;
-  border: 2px solid #ff00ff;
-  text-align: center;
-  width: 300px;
-  box-shadow: 0 0 40px #ff00ff66;
-}
-
-.menu h1 {
-  color: #00f2ff;
-  margin-bottom: 10px;
-}
-
-button {
-  padding: 14px 30px;
-  font-size: 16px;
-  font-family: Orbitron;
-  border: none;
-  cursor: pointer;
-  background: linear-gradient(45deg,#ff00ff,#00f2ff);
-  color: #000;
-  font-weight: bold;
-  border-radius: 10px;
-  box-shadow: 0 0 15px #00f2ff;
-}
-
-button:hover {
-  filter: brightness(1.2);
-}
-
-#hud {
-  position: fixed;
-  top: 15px;
-  width: 100%;
-  text-align: center;
-  color: #00f2ff;
-  font-size: 20px;
-  text-shadow: 0 0 10px #00f2ff;
-}
-
-.leaderboard {
-  margin-top: 20px;
-  text-align: left;
-  font-size: 14px;
-}
-
-.leaderboard h3 {
-  text-align: center;
-  color: #ffd700;
-  margin-bottom: 6px;
-}
+  button {
+    background: #ffd700;
+    color: black;
+    border: none;
+    padding: 14px 30px;
+    font-size: 20px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
 </style>
 </head>
 
 <body>
 
-<div id="ui">
-  <div class="menu">
-    <h1>ARGUS</h1>
-    <p>Journey to Odysseus</p>
-
-    <button onclick="start()">START JOURNEY</button>
-
-    <p style="font-size:12px;opacity:0.7;margin-top:8px;">
-      Tap / Click / Space to Jump
-    </p>
-
-    <div class="leaderboard">
-      <h3>🏆 Leaderboard</h3>
-      <ol id="scores"></ol>
-    </div>
-  </div>
-</div>
-
-<div id="hud">DISTANCE: <span id="score">0</span></div>
 <canvas id="game"></canvas>
+
+<div id="startScreen">
+  <h1>ARGUS vs ODYSSEUS</h1>
+  <button onclick="startGame()">START</button>
+  <p style="color:#888;margin-top:20px;">Tap / Click to jump</p>
+</div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-canvas.width = 960;
-canvas.height = 540;
 
-let active=false, frame=0, score=0, speed=4, graceFrames=0;
-
-// 📱 scale for mobile
 function resize() {
-  const scale = Math.min(window.innerWidth/960, window.innerHeight/540);
-  canvas.style.transform = `scale(${scale})`;
-  canvas.style.transformOrigin = "top center";
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 }
 window.addEventListener("resize", resize);
 resize();
 
-// 🌌 stars
-const stars=[...Array(100)].map(()=>({
-  x:Math.random()*canvas.width,
-  y:Math.random()*canvas.height,
-  s:Math.random()*2+0.5
-}));
+let gameRunning = false;
+let gravity = 0.6;
 
-// 🐕 ARGUS
-const dog={
-  x:120,y:120,vy:-2,
-  gravity:0.7,jump:-11,
-  update(){
-    if(graceFrames>0) graceFrames--;
-    else this.vy+=this.gravity;
-    this.y+=this.vy;
-    if(this.y<40||this.y>canvas.height-60) lose();
-  },
-  draw(){
-    ctx.save();
-    ctx.translate(this.x,this.y);
-
-    ctx.fillStyle="#8b5a2b";
-    ctx.beginPath(); ctx.ellipse(0,0,32,16,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(40,-10,13,11,0,0,Math.PI*2); ctx.fill();
-
-    ctx.fillStyle="#000";
-    ctx.beginPath(); ctx.arc(45,-13,2.5,0,Math.PI*2); ctx.fill();
-
-    ctx.restore();
-
-    ctx.fillStyle="#ffd27f";
-    ctx.font="bold 16px Orbitron";
-    ctx.fillText("ARGUS",this.x-26,this.y-40);
-  }
+const dog = {
+  x: 80,
+  y: 120,
+  vy: 0,
+  r: 18
 };
 
-// 🧍 ODYSSEUS (VISIBLE AGAIN)
-const odysseus={
-  x:canvas.width-140,y:200,
-  draw(){
-    ctx.save();
-    ctx.strokeStyle="#FFD700";
-    ctx.lineWidth=4;
-    ctx.shadowBlur=20;
-    ctx.shadowColor="#FFAA00";
-
-    // helmet
-    ctx.beginPath();
-    ctx.arc(this.x,this.y,18,Math.PI,0);
-    ctx.stroke();
-
-    // crest
-    ctx.beginPath();
-    ctx.moveTo(this.x,this.y-18);
-    ctx.lineTo(this.x,this.y-40);
-    ctx.stroke();
-
-    // body
-    ctx.beginPath();
-    ctx.moveTo(this.x,this.y);
-    ctx.lineTo(this.x,this.y+80);
-    ctx.stroke();
-
-    // arms
-    ctx.beginPath();
-    ctx.moveTo(this.x-30,this.y+30);
-    ctx.lineTo(this.x+30,this.y+30);
-    ctx.stroke();
-
-    // legs
-    ctx.beginPath();
-    ctx.moveTo(this.x,this.y+80);
-    ctx.lineTo(this.x-20,this.y+130);
-    ctx.moveTo(this.x,this.y+80);
-    ctx.lineTo(this.x+20,this.y+130);
-    ctx.stroke();
-
-    ctx.restore();
-
-    ctx.fillStyle="#FFD700";
-    ctx.font="16px Orbitron";
-    ctx.fillText("ODYSSEUS",this.x-45,this.y-50);
-  }
+const odysseus = {
+  x: () => canvas.width - 80,
+  y: () => canvas.height / 2
 };
 
-// 🚧 obstacles
-let obstacles=[];
-class Obstacle{
-  constructor(){
-    this.x=canvas.width;
-    this.w=70;
-    this.gap=220;
-    this.top=Math.random()*200+60;
-  }
-  update(){this.x-=speed;}
-  draw(){
-    ctx.fillStyle="#00f2ff";
-    ctx.fillRect(this.x,0,this.w,this.top);
-    ctx.fillRect(this.x,this.top+this.gap,this.w,canvas.height);
-  }
-}
-
-// 🏆 LEADERBOARD
-function loadScores(){
-  const list=document.getElementById("scores");
-  list.innerHTML="";
-  const data=JSON.parse(localStorage.getItem("argusScores")||"[]");
-  data.forEach(s=>{
-    const li=document.createElement("li");
-    li.textContent=s;
-    list.appendChild(li);
-  });
-}
-
-function saveScore(){
-  let data=JSON.parse(localStorage.getItem("argusScores")||"[]");
-  data.push(score);
-  data=data.sort((a,b)=>b-a).slice(0,5);
-  localStorage.setItem("argusScores",JSON.stringify(data));
-  loadScores();
-}
-loadScores();
-
-// 🎮 controls
-function start(){
-  document.getElementById("ui").style.display="none";
-  obstacles=[];
-  score=frame=0;
-  speed=4;
-  graceFrames=30;
-  dog.y=120; dog.vy=-2;
-  active=true;
+function startGame() {
+  document.getElementById("startScreen").style.display = "none";
+  gameRunning = true;
+  dog.y = 120;
+  dog.vy = -2;
   loop();
 }
 
-function lose(){
-  if(!active) return;
-  active=false;
-  saveScore();
-  document.getElementById("ui").style.display="flex";
+function jump() {
+  if (!gameRunning) return;
+  dog.vy = -10;
 }
 
-function win(){
-  active=false;
-  saveScore();
-  document.getElementById("ui").style.display="flex";
+window.addEventListener("click", jump);
+window.addEventListener("touchstart", jump);
+
+function drawDog() {
+  ctx.fillStyle = "#a8743c";
+  ctx.beginPath();
+  ctx.ellipse(dog.x, dog.y, 24, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(dog.x + 22, dog.y - 6, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#ffd700";
+  ctx.font = "16px Arial";
+  ctx.fillText("ARGUS", dog.x - 20, dog.y - 25);
 }
 
-function jump(){ if(active) dog.vy=dog.jump; }
-window.addEventListener("keydown",e=>{ if(e.code==="Space") jump(); });
-canvas.addEventListener("mousedown",jump);
-canvas.addEventListener("touchstart",e=>{e.preventDefault();jump();},{passive:false});
+function drawOdysseus() {
+  const x = odysseus.x();
+  const y = odysseus.y();
 
-// 🔁 loop
-function loop(){
-  if(!active) return;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = "#ffd700";
+  ctx.lineWidth = 4;
 
-  stars.forEach(s=>{
-    s.x-=s.s*0.2;
-    if(s.x<0) s.x=canvas.width;
-    ctx.fillStyle="#444";
-    ctx.fillRect(s.x,s.y,s.s,s.s);
-  });
+  // head
+  ctx.beginPath();
+  ctx.arc(x, y - 30, 12, 0, Math.PI * 2);
+  ctx.stroke();
 
-  if(frame%110===0) obstacles.push(new Obstacle());
-  for(let i=obstacles.length-1;i>=0;i--){
-    const o=obstacles[i];
-    o.update(); o.draw();
-    if(dog.x+30>o.x&&dog.x-30<o.x+o.w&&(dog.y<o.top||dog.y>o.top+o.gap)) lose();
-    if(o.x+o.w<0) obstacles.splice(i,1);
+  // body
+  ctx.beginPath();
+  ctx.moveTo(x, y - 18);
+  ctx.lineTo(x, y + 25);
+  ctx.stroke();
+
+  // arms
+  ctx.beginPath();
+  ctx.moveTo(x - 20, y);
+  ctx.lineTo(x + 20, y);
+  ctx.stroke();
+
+  // legs
+  ctx.beginPath();
+  ctx.moveTo(x, y + 25);
+  ctx.lineTo(x - 15, y + 55);
+  ctx.moveTo(x, y + 25);
+  ctx.lineTo(x + 15, y + 55);
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffd700";
+  ctx.font = "16px Arial";
+  ctx.fillText("ODYSSEUS", x - 45, y - 50);
+}
+
+function update() {
+  dog.vy += gravity;
+  dog.y += dog.vy;
+
+  if (dog.y > canvas.height - 40) {
+    dog.y = canvas.height - 40;
+    dog.vy = 0;
   }
+}
 
-  dog.update(); dog.draw(); odysseus.draw();
-  if(dog.x+30>=odysseus.x-20) win();
+function loop() {
+  if (!gameRunning) return;
 
-  score++;
-  document.getElementById("score").innerText=score;
-  frame++;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  update();
+  drawDog();
+  drawOdysseus();
+
   requestAnimationFrame(loop);
 }
 </script>
+
 </body>
 </html>
