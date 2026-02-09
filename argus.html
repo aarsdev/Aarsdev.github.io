@@ -62,10 +62,6 @@ button {
   box-shadow: 0 0 15px #00f2ff;
 }
 
-button:hover {
-  filter: brightness(1.2);
-}
-
 #hud {
   position: fixed;
   top: 15px;
@@ -85,7 +81,6 @@ button:hover {
 .leaderboard h3 {
   text-align: center;
   color: #ffd700;
-  margin-bottom: 6px;
 }
 </style>
 </head>
@@ -96,13 +91,8 @@ button:hover {
   <div class="menu">
     <h1>ARGUS</h1>
     <p>Journey to Odysseus</p>
-
     <button onclick="start()">START JOURNEY</button>
-
-    <p style="font-size:12px;opacity:0.7;margin-top:8px;">
-      Tap / Click / Space to Jump
-    </p>
-
+    <p style="font-size:12px;opacity:0.7;">Tap / Click / Space to Jump</p>
     <div class="leaderboard">
       <h3>🏆 Leaderboard</h3>
       <ol id="scores"></ol>
@@ -114,59 +104,80 @@ button:hover {
 <canvas id="game"></canvas>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-canvas.width = 960;
-canvas.height = 540;
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+canvas.width=960;
+canvas.height=540;
 
-let active=false, frame=0, score=0, speed=4, graceFrames=0;
+let active=false,frame=0,score=0,speed=4,graceFrames=0;
 
-// 📱 scale for mobile
-function resize() {
-  const scale = Math.min(window.innerWidth/960, window.innerHeight/540);
-  canvas.style.transform = `scale(${scale})`;
-  canvas.style.transformOrigin = "top center";
+function resize(){
+  const scale=Math.min(innerWidth/960,innerHeight/540);
+  canvas.style.transform=`scale(${scale})`;
+  canvas.style.transformOrigin="top center";
 }
-window.addEventListener("resize", resize);
+addEventListener("resize",resize);
 resize();
 
 // 🌌 stars
-const stars=[...Array(100)].map(()=>({
-  x:Math.random()*canvas.width,
-  y:Math.random()*canvas.height,
-  s:Math.random()*2+0.5
-}));
+const stars=[...Array(100)].map(()=>({x:Math.random()*960,y:Math.random()*540,s:Math.random()*2+0.5}));
 
-// 🐕 ARGUS
+// 🐕 ARGUS (REAL DOG SHAPE)
 const dog={
-  x:120,y:120,vy:-2,
-  gravity:0.7,jump:-11,
+  x:120,y:120,vy:-2,gravity:0.7,jump:-11,
   update(){
-    if(graceFrames>0) graceFrames--;
+    if(graceFrames>0)graceFrames--;
     else this.vy+=this.gravity;
     this.y+=this.vy;
-    if(this.y<40||this.y>canvas.height-60) lose();
+    if(this.y<40||this.y>canvas.height-60)lose();
   },
   draw(){
     ctx.save();
     ctx.translate(this.x,this.y);
 
+    // body
     ctx.fillStyle="#8b5a2b";
-    ctx.beginPath(); ctx.ellipse(0,0,32,16,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(40,-10,13,11,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0,0,36,18,0,0,Math.PI*2);
+    ctx.fill();
 
-    ctx.fillStyle="#000";
-    ctx.beginPath(); ctx.arc(45,-13,2.5,0,Math.PI*2); ctx.fill();
+    // head
+    ctx.beginPath();
+    ctx.ellipse(42,-8,16,14,0,0,Math.PI*2);
+    ctx.fill();
+
+    // ears
+    ctx.beginPath();
+    ctx.moveTo(40,-22);
+    ctx.lineTo(30,-40);
+    ctx.lineTo(48,-28);
+    ctx.fill();
+
+    // legs
+    ctx.strokeStyle="#5a3a1a";
+    ctx.lineWidth=4;
+    [-12,0,12].forEach(x=>{
+      ctx.beginPath();
+      ctx.moveTo(x,16);
+      ctx.lineTo(x,30);
+      ctx.stroke();
+    });
+
+    // tail
+    ctx.beginPath();
+    ctx.moveTo(-36,-4);
+    ctx.lineTo(-52,-14);
+    ctx.stroke();
 
     ctx.restore();
 
     ctx.fillStyle="#ffd27f";
     ctx.font="bold 16px Orbitron";
-    ctx.fillText("ARGUS",this.x-26,this.y-40);
+    ctx.fillText("ARGUS",this.x-30,this.y-45);
   }
 };
 
-// 🧍 ODYSSEUS (VISIBLE AGAIN)
+// 🧍 ODYSSEUS (SHIELD + SWORD)
 const odysseus={
   x:canvas.width-140,y:200,
   draw(){
@@ -176,42 +187,45 @@ const odysseus={
     ctx.shadowBlur=20;
     ctx.shadowColor="#FFAA00";
 
-    // helmet
+    // head
     ctx.beginPath();
-    ctx.arc(this.x,this.y,18,Math.PI,0);
-    ctx.stroke();
-
-    // crest
-    ctx.beginPath();
-    ctx.moveTo(this.x,this.y-18);
-    ctx.lineTo(this.x,this.y-40);
+    ctx.arc(this.x,this.y-30,14,0,Math.PI*2);
     ctx.stroke();
 
     // body
     ctx.beginPath();
-    ctx.moveTo(this.x,this.y);
-    ctx.lineTo(this.x,this.y+80);
+    ctx.moveTo(this.x,this.y-15);
+    ctx.lineTo(this.x,this.y+60);
     ctx.stroke();
 
-    // arms
+    // shield
     ctx.beginPath();
-    ctx.moveTo(this.x-30,this.y+30);
-    ctx.lineTo(this.x+30,this.y+30);
+    ctx.arc(this.x-35,this.y+20,22,0,Math.PI*2);
+    ctx.stroke();
+
+    // sword
+    ctx.beginPath();
+    ctx.moveTo(this.x+30,this.y);
+    ctx.lineTo(this.x+30,this.y-60);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(this.x+25,this.y-50);
+    ctx.lineTo(this.x+35,this.y-50);
     ctx.stroke();
 
     // legs
     ctx.beginPath();
-    ctx.moveTo(this.x,this.y+80);
-    ctx.lineTo(this.x-20,this.y+130);
-    ctx.moveTo(this.x,this.y+80);
-    ctx.lineTo(this.x+20,this.y+130);
+    ctx.moveTo(this.x,this.y+60);
+    ctx.lineTo(this.x-20,this.y+110);
+    ctx.moveTo(this.x,this.y+60);
+    ctx.lineTo(this.x+20,this.y+110);
     ctx.stroke();
 
     ctx.restore();
 
     ctx.fillStyle="#FFD700";
     ctx.font="16px Orbitron";
-    ctx.fillText("ODYSSEUS",this.x-45,this.y-50);
+    ctx.fillText("ODYSSEUS",this.x-55,this.y-60);
   }
 };
 
@@ -232,23 +246,17 @@ class Obstacle{
   }
 }
 
-// 🏆 LEADERBOARD
+// 🏆 leaderboard
 function loadScores(){
   const list=document.getElementById("scores");
   list.innerHTML="";
-  const data=JSON.parse(localStorage.getItem("argusScores")||"[]");
-  data.forEach(s=>{
-    const li=document.createElement("li");
-    li.textContent=s;
-    list.appendChild(li);
-  });
+  JSON.parse(localStorage.getItem("argusScores")||"[]")
+    .forEach(s=>{const li=document.createElement("li");li.textContent=s;list.appendChild(li);});
 }
-
 function saveScore(){
-  let data=JSON.parse(localStorage.getItem("argusScores")||"[]");
-  data.push(score);
-  data=data.sort((a,b)=>b-a).slice(0,5);
-  localStorage.setItem("argusScores",JSON.stringify(data));
+  let d=JSON.parse(localStorage.getItem("argusScores")||"[]");
+  d.push(score); d=d.sort((a,b)=>b-a).slice(0,5);
+  localStorage.setItem("argusScores",JSON.stringify(d));
   loadScores();
 }
 loadScores();
@@ -256,59 +264,36 @@ loadScores();
 // 🎮 controls
 function start(){
   document.getElementById("ui").style.display="none";
-  obstacles=[];
-  score=frame=0;
-  speed=4;
-  graceFrames=30;
-  dog.y=120; dog.vy=-2;
-  active=true;
-  loop();
+  obstacles=[]; score=frame=0; speed=4; graceFrames=30;
+  dog.y=120; dog.vy=-2; active=true; loop();
 }
-
-function lose(){
-  if(!active) return;
-  active=false;
-  saveScore();
-  document.getElementById("ui").style.display="flex";
-}
-
-function win(){
-  active=false;
-  saveScore();
-  document.getElementById("ui").style.display="flex";
-}
-
+function lose(){ if(!active)return; active=false; saveScore(); ui.style.display="flex"; }
+function win(){ active=false; saveScore(); ui.style.display="flex"; }
 function jump(){ if(active) dog.vy=dog.jump; }
-window.addEventListener("keydown",e=>{ if(e.code==="Space") jump(); });
+
+addEventListener("keydown",e=>{if(e.code==="Space")jump();});
 canvas.addEventListener("mousedown",jump);
 canvas.addEventListener("touchstart",e=>{e.preventDefault();jump();},{passive:false});
 
 // 🔁 loop
 function loop(){
-  if(!active) return;
+  if(!active)return;
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  stars.forEach(s=>{
-    s.x-=s.s*0.2;
-    if(s.x<0) s.x=canvas.width;
-    ctx.fillStyle="#444";
-    ctx.fillRect(s.x,s.y,s.s,s.s);
-  });
+  stars.forEach(s=>{s.x-=s.s*0.2;if(s.x<0)s.x=canvas.width;ctx.fillStyle="#444";ctx.fillRect(s.x,s.y,s.s,s.s);});
 
-  if(frame%110===0) obstacles.push(new Obstacle());
+  if(frame%110===0)obstacles.push(new Obstacle());
   for(let i=obstacles.length-1;i>=0;i--){
     const o=obstacles[i];
     o.update(); o.draw();
-    if(dog.x+30>o.x&&dog.x-30<o.x+o.w&&(dog.y<o.top||dog.y>o.top+o.gap)) lose();
-    if(o.x+o.w<0) obstacles.splice(i,1);
+    if(dog.x+30>o.x&&dog.x-30<o.x+o.w&&(dog.y<o.top||dog.y>o.top+o.gap))lose();
+    if(o.x+o.w<0)obstacles.splice(i,1);
   }
 
   dog.update(); dog.draw(); odysseus.draw();
-  if(dog.x+30>=odysseus.x-20) win();
+  if(dog.x+30>=odysseus.x-20)win();
 
-  score++;
-  document.getElementById("score").innerText=score;
-  frame++;
+  score++; scoreEl.textContent=score; frame++;
   requestAnimationFrame(loop);
 }
 </script>
