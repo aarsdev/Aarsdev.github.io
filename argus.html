@@ -59,7 +59,7 @@ const stars=[...Array(100)].map(()=>({
   s:Math.random()*2+0.5
 }));
 
-// 🐕 ARGUS as emoji
+// 🐕 ARGUS as emoji facing right
 const dog = {
   x:120, y:120, vy:-2,
   gravity:0.7, jump:-11,
@@ -71,10 +71,12 @@ const dog = {
   },
   draw(){
     ctx.save();
-    ctx.font = "48px serif"; // emoji size
+    ctx.translate(this.x, this.y);
+    ctx.scale(-1,1); // flip horizontally
+    ctx.font = "48px serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("🐕", this.x, this.y); // dog emoji
+    ctx.fillText("🐕", 0, 0);
     ctx.restore();
 
     ctx.fillStyle="#ffd27f";
