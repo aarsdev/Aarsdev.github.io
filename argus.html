@@ -59,77 +59,24 @@ const stars=[...Array(100)].map(()=>({
   s:Math.random()*2+0.5
 }));
 
-// 🐕 ARGUS - athletic hunting dog
+// 🐕 ARGUS as emoji
 const dog = {
   x:120, y:120, vy:-2,
   gravity:0.7, jump:-11,
-  tailAngle:0, tailDirection:1,
-  legSwing:0, legDirection:1,
   update(){
     if(graceFrames>0) graceFrames--;
     else this.vy+=this.gravity;
     this.y+=this.vy;
     if(this.y<40||this.y>canvas.height-60) lose();
-
-    // tail wag
-    this.tailAngle += 0.2*this.tailDirection;
-    if(this.tailAngle > 0.6 || this.tailAngle < -0.6) this.tailDirection*=-1;
-
-    // legs swing
-    this.legSwing += 0.3*this.legDirection;
-    if(this.legSwing>6 || this.legSwing<-6) this.legDirection*=-1;
   },
   draw(){
     ctx.save();
-    ctx.translate(this.x,this.y);
-
-    // BODY - slim and athletic
-    ctx.fillStyle="#8b5a2b";
-    ctx.beginPath();
-    ctx.ellipse(0,0,26,12,0,0,Math.PI*2);
-    ctx.fill();
-
-    // LEGS
-    ctx.fillStyle="#8b5a2b";
-    ctx.fillRect(-18,10,6,22 + this.legSwing); // back left
-    ctx.fillRect(12,10,6,22 - this.legSwing);  // back right
-    ctx.fillRect(-15,-14,5,16 + this.legSwing); // front left
-    ctx.fillRect(15,-14,5,16 - this.legSwing);  // front right
-
-    // HEAD
-    ctx.fillStyle="#8b5a2b";
-    ctx.beginPath();
-    ctx.ellipse(28,-8,14,11,0,0,Math.PI*2);
-    ctx.fill();
-
-    // EARS
-    ctx.beginPath();
-    ctx.moveTo(20,-18); ctx.lineTo(18,-28); ctx.lineTo(25,-18); ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(33,-18); ctx.lineTo(31,-28); ctx.lineTo(38,-18); ctx.fill();
-
-    // EYES
-    ctx.fillStyle="#000";
-    ctx.beginPath();
-    ctx.arc(25,-10,2.5,0,Math.PI*2);
-    ctx.arc(31,-10,2.5,0,Math.PI*2);
-    ctx.fill();
-
-    // TAIL
-    ctx.save();
-    ctx.translate(-22,-4);
-    ctx.rotate(this.tailAngle);
-    ctx.strokeStyle="#8b5a2b";
-    ctx.lineWidth=4;
-    ctx.beginPath();
-    ctx.moveTo(0,0);
-    ctx.lineTo(-20,-6);
-    ctx.stroke();
+    ctx.font = "48px serif"; // emoji size
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🐕", this.x, this.y); // dog emoji
     ctx.restore();
 
-    ctx.restore();
-
-    // NAME
     ctx.fillStyle="#ffd27f";
     ctx.font="bold 16px Orbitron";
     ctx.fillText("ARGUS", this.x-26, this.y-40);
