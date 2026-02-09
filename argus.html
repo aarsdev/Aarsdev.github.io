@@ -71,77 +71,59 @@ const dog = {
     this.y+=this.vy;
     if(this.y<40||this.y>canvas.height-60) lose();
 
-    // tail animation
-    this.tailAngle += 0.15*this.tailDirection;
-    if(this.tailAngle>0.5 || this.tailAngle<-0.5) this.tailDirection*=-1;
+    // tail wag
+    this.tailAngle += 0.2*this.tailDirection;
+    if(this.tailAngle > 0.6 || this.tailAngle < -0.6) this.tailDirection*=-1;
 
-    // legs animation
-    this.legSwing += 0.2*this.legDirection;
-    if(this.legSwing>5 || this.legSwing<-5) this.legDirection*=-1;
+    // legs swing
+    this.legSwing += 0.3*this.legDirection;
+    if(this.legSwing>6 || this.legSwing<-6) this.legDirection*=-1;
   },
   draw(){
     ctx.save();
     ctx.translate(this.x,this.y);
 
-    // BODY - lean and muscular
+    // BODY - slim and athletic
     ctx.fillStyle="#8b5a2b";
     ctx.beginPath();
-    ctx.ellipse(0,0,28,18,0,0,Math.PI*2);
+    ctx.ellipse(0,0,26,12,0,0,Math.PI*2);
     ctx.fill();
 
-    // LEGS - athletic, swinging
+    // LEGS
     ctx.fillStyle="#8b5a2b";
-    ctx.fillRect(-22,12,7,25 + this.legSwing); // back left
-    ctx.fillRect(15,12,7,25 - this.legSwing);  // back right
-    ctx.fillRect(-18,-18,6,18 + this.legSwing); // front left
-    ctx.fillRect(18,-18,6,18 - this.legSwing);  // front right
+    ctx.fillRect(-18,10,6,22 + this.legSwing); // back left
+    ctx.fillRect(12,10,6,22 - this.legSwing);  // back right
+    ctx.fillRect(-15,-14,5,16 + this.legSwing); // front left
+    ctx.fillRect(15,-14,5,16 - this.legSwing);  // front right
 
-    // CHEST definition
-    ctx.fillStyle="#a0522d";
-    ctx.beginPath();
-    ctx.ellipse(0,3,28,6,0,0,Math.PI*2);
-    ctx.fill();
-
-    // HEAD - alert and angular
+    // HEAD
     ctx.fillStyle="#8b5a2b";
     ctx.beginPath();
-    ctx.ellipse(32,-10,16,13,0,0,Math.PI*2);
+    ctx.ellipse(28,-8,14,11,0,0,Math.PI*2);
     ctx.fill();
 
-    // EARS - pointed
+    // EARS
     ctx.beginPath();
-    ctx.moveTo(22,-22); ctx.lineTo(20,-34); ctx.lineTo(27,-22); ctx.fill();
+    ctx.moveTo(20,-18); ctx.lineTo(18,-28); ctx.lineTo(25,-18); ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(37,-22); ctx.lineTo(35,-34); ctx.lineTo(42,-22); ctx.fill();
+    ctx.moveTo(33,-18); ctx.lineTo(31,-28); ctx.lineTo(38,-18); ctx.fill();
 
-    // SNOUT
-    ctx.fillStyle="#d2a679";
-    ctx.beginPath();
-    ctx.ellipse(40,-8,9,5,0,0,Math.PI*2);
-    ctx.fill();
-
-    // NOSE
+    // EYES
     ctx.fillStyle="#000";
     ctx.beginPath();
-    ctx.arc(47,-8,3,0,Math.PI*2);
+    ctx.arc(25,-10,2.5,0,Math.PI*2);
+    ctx.arc(31,-10,2.5,0,Math.PI*2);
     ctx.fill();
 
-    // EYES - alert
-    ctx.fillStyle="#000";
-    ctx.beginPath();
-    ctx.arc(31,-12,3,0,Math.PI*2);
-    ctx.arc(36,-12,3,0,Math.PI*2);
-    ctx.fill();
-
-    // TAIL - wagging
+    // TAIL
     ctx.save();
-    ctx.translate(-25,-5);
+    ctx.translate(-22,-4);
     ctx.rotate(this.tailAngle);
     ctx.strokeStyle="#8b5a2b";
     ctx.lineWidth=4;
     ctx.beginPath();
     ctx.moveTo(0,0);
-    ctx.lineTo(-22,-10);
+    ctx.lineTo(-20,-6);
     ctx.stroke();
     ctx.restore();
 
